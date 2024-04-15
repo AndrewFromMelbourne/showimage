@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<title>Keyboard keys</title>
+<script type="text/javascript">
+
+//------------------------------------------------------------------------
+
+CanvasRenderingContext2D.prototype.roundedRect = function(x, y, w, h, r)
+{
+    if (w < 2 * r)
+    {
+        r = w / 2;
+    }
+
+    if (h < 2 * r)
+    {
+        r = h / 2;
+    }
+
+    this.beginPath();
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.lineTo(x + w, y + h - r);
+    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.lineTo(x + r, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.lineTo(x, y + r);
+    this.quadraticCurveTo(x, y, x + r, y);
+    this.closePath();
+}
+
+//------------------------------------------------------------------------
+
+function init()
+{
+    var letterBump = 2;
+    var horizontalArrowBump = 0;
+    var verticalArrowBump = -1;
+
+    keyboardKeyGlyph('canvas_a', "A", letterBump);
+    keyboardKeyGlyph('canvas_c', "C", letterBump);
+    keyboardKeyGlyph('canvas_d', "D", letterBump);
+    keyboardKeyGlyph('canvas_f', "F", letterBump);
+    keyboardKeyGlyph('canvas_g', "G", letterBump);
+    keyboardKeyGlyph('canvas_o', "O", letterBump);
+    keyboardKeyGlyph('canvas_r', "R", letterBump);
+    keyboardKeyGlyph('canvas_s', "S", letterBump);
+    keyboardKeyGlyph('canvas_w', "W", letterBump);
+    keyboardKeyGlyph('canvas_x', "X", letterBump);
+    keyboardKeyGlyph('canvas_z', "Z", letterBump);
+    keyboardKeyGlyph('canvas_left', "←", horizontalArrowBump);
+    keyboardKeyGlyph('canvas_right', "→", horizontalArrowBump);
+    keyboardKeyGlyph('canvas_up', "↑", verticalArrowBump);
+    keyboardKeyGlyph('canvas_down', "↓", verticalArrowBump);
+
+    keyboardTextKey('canvas_esc', "Esc", 0);
+}
+
+//------------------------------------------------------------------------
+
+function keyboardKey(context)
+{
+    context.lineWidth = 2.0;
+    context.roundedRect(3, 3, 34, 34, 8);
+    context.fillStyle = "black";
+    context.fill();
+    context.strokeStyle = "white";
+    context.stroke();
+}
+
+//------------------------------------------------------------------------
+
+function keyboardKeyGlyph(id, glyph, nudgeDown)
+{
+    var canvas = document.getElementById(id);
+    var context = canvas.getContext('2d');
+
+    context.save();
+
+    keyboardKey(context);
+
+    context.font = "20pt Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "white";
+    context.fillText(glyph, 20, 20 + nudgeDown);
+
+    context.restore();
+}
+
+//------------------------------------------------------------------------
+
+function keyboardTextKey(id, text, nudgeDown)
+{
+    var canvas = document.getElementById(id);
+
+    var context = canvas.getContext('2d');
+
+    context.save();
+
+    keyboardKey(context);
+
+    context.font = "12pt Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "white";
+    context.fillText(text, 20, 20);
+
+    context.restore();
+}
+
+//------------------------------------------------------------------------
+
+</script>
+<style>
+
+    #wrapper 
+    {
+        width: 304px;
+        height: 130px;
+        margin-top: 3px;
+        margin-left: auto;
+        margin-right: auto;
+        background: black;
+    }
+
+    body
+    {
+        background: white;
+    }
+
+</style>
+</head>
+<body onload="init();">
+
+<div id="wrapper">
+    <canvas id="canvas_a" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_c" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_d" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_f" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_g" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_o" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_r" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_s" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_w" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_x" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_z" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_left" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_right" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_up" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_down" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_esc" width="40" height="40">No canvas support! </canvas>
+</div>
+
+</body>
+</html>

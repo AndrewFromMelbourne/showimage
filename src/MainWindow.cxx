@@ -1,8 +1,37 @@
+//-------------------------------------------------------------------------
+//
+// The MIT License (MIT)
+//
+// Copyright (c) 2024 Andrew Duncan
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//-------------------------------------------------------------------------
+
 #include "MainWindow.h"
+#include "splash.h"
 
 #include <QApplication>
 #include <QDirIterator>
 #include <QFileDialog>
+#include <QImageReader>
 #include <QKeyEvent>
 
 #include <algorithm>
@@ -15,10 +44,19 @@ MainWindow::MainWindow(QWidget* parent)
     QMainWindow(parent),
     m_annotate{true},
     m_current{-1},
+    m_directory{},
     m_files{},
-    m_image{},
+    m_image{
+        splash,
+        MainWindow::DEFAULT_WIDTH,
+        MainWindow::DEFAULT_HEIGHT,
+        QImage::Format_Grayscale8
+    },
+    m_fitToScreen{false},
+    m_greyscale{false},
+    m_isSplash{true},
     m_percent{100},
-    m_smoothScale{false},
+    m_smoothScale{true},
     m_xOffset{0},
     m_yOffset{0},
     m_zoom{0}
@@ -89,6 +127,13 @@ MainWindow::keyPressEvent(QKeyEvent* event)
             if (m_zoom > 0)
             {
                 --m_zoom;
+
+                if (m_zoom == 0)
+                {
+                    m_xOffset = 0;
+                    m_yOffset = 0;
+                }
+
                 repaint();
             }
 
@@ -114,9 +159,30 @@ MainWindow::keyPressEvent(QKeyEvent* event)
 
             break;
 
+        case Qt::Key_F:
+
+            m_fitToScreen = !m_fitToScreen;
+            repaint();
+
+            break;
+
+        case Qt::Key_G:
+
+            m_greyscale = !m_greyscale;
+            repaint();
+
+            break;
+
         case Qt::Key_O:
 
             openDirectory();
+            readDirectory();
+
+            break;
+
+        case Qt::Key_R:
+
+            readDirectory();
 
             break;
 
@@ -206,7 +272,10 @@ MainWindow::annotate(QPainter& painter)
     {
         painter.setPen(QPen(Qt::green));
         painter.setFont(QFont("Helvetica", 12));
-        QString annotation = QString("%1").arg(m_files[m_current].fileName());
+
+        QString name = m_files[m_current].absoluteFilePath();
+        auto nameLength = name.length() - m_directory.length() - 1;
+        QString annotation = QString("%1").arg(name.right(nameLength));
 
         annotation += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
                                                   QString::number(m_image.height()));
@@ -221,7 +290,37 @@ MainWindow::annotate(QPainter& painter)
             annotation += transformationLabel();
         }
 
+        annotation += colourLabel();
+
+        if (m_zoom)
+        {
+            annotation += " [ x" + QString::number(m_zoom) + " ]";
+        }
+        else if (m_fitToScreen)
+        {
+            annotation += " [ FTS ]";
+        }
+        else
+        {
+            annotation += " [ FOS ]";
+        }
+
         painter.drawText(4, 12, annotation);
+    }
+}
+
+// ------------------------------------------------------------------------
+
+const char*
+MainWindow::colourLabel() const
+{
+    if (m_greyscale)
+    {
+        return " [ grey ]";
+    }
+    else
+    {
+        return " [ colour ]";
     }
 }
 
@@ -266,46 +365,7 @@ MainWindow::imagePrevious()
 void
 MainWindow::openDirectory()
 {
-    auto directory = QFileDialog::getExistingDirectory(this, "Image folder");
-
-    if (directory.length() > 0)
-    {
-        QDir imageDir(directory);
-        imageDir.setFilter(QDir::Files);
-        imageDir.setNameFilters({"*.bmp", "*.gif", "*.jpg", "*.jpeg", "*.png"});
-        imageDir.setSorting(QDir::Name);
-
-        m_files = imageDir.entryInfoList();
-    }
-    else
-    {
-        m_files.clear();
-    }
-
-    if (m_files.size() > 0)
-    {
-        m_current = 0;
-        openImage();
-
-        setMinimumSize(0, 0);
-        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-    }
-    else
-    {
-        m_current = INVALID_INDEX;
-        m_image = QImage();
-
-        if (isFullScreen())
-        {
-            showNormal();
-        }
-        resize(MainWindow::DEFAULT_WIDTH,
-               MainWindow::DEFAULT_HEIGHT);
-        setFixedSize(MainWindow::DEFAULT_WIDTH,
-                     MainWindow::DEFAULT_HEIGHT);
-
-        repaint();
-    }
+    m_directory = QFileDialog::getExistingDirectory(this, "Image folder");
 }
 
 // ------------------------------------------------------------------------
@@ -328,7 +388,9 @@ MainWindow::oversize() const
 void
 MainWindow::openImage()
 {
-    m_image.load(m_files[m_current].filePath());
+    QImageReader reader{m_files[m_current].filePath()};
+    m_image = reader.read();
+    m_isSplash = false;
 
     m_xOffset = 0;
     m_yOffset = 0;
@@ -341,45 +403,51 @@ MainWindow::openImage()
 void
 MainWindow::paint(QPainter& painter)
 {
+    if (m_isSplash)
+    {
+        auto point = placeImage(m_image);
+        painter.drawImage(point, m_image);
+        return;
+    }
+
     if (not oversize())
     {
         m_xOffset = 0;
         m_yOffset = 0;
     }
 
-    if (((m_zoom == SCALE_OVERSIZED) and not oversize()) or (m_zoom == 1))
+    QImage image = (m_greyscale)
+                 ? m_image.convertToFormat(QImage::Format_Grayscale8)
+                 : m_image;
+
+    if (((m_zoom == SCALE_OVERSIZED) and not oversize() and not m_fitToScreen) or (m_zoom == 1))
     {
         m_percent = 100;
-
-        auto point = placeImage(m_image);
-        painter.drawImage(point, m_image);
     }
     else
     {
-        QImage resized;
-
         if (m_zoom == SCALE_OVERSIZED)
         {
-            resized = m_image.scaled(QSize(width(), height()),
-                                     Qt::KeepAspectRatio,
-                                     transformationMode());
+            image = image.scaled(QSize(width(), height()),
+                                 Qt::KeepAspectRatio,
+                                 transformationMode());
 
-            auto percent = (100.0 * resized.width()) / m_image.width();
+            auto percent = (100.0 * image.width()) / m_image.width();
             m_percent = static_cast<int>(0.5 + percent);
         }
         else
         {
-            resized = m_image.scaled(m_image.width() * m_zoom,
-                                     m_image.height() * m_zoom,
-                                     Qt::KeepAspectRatio,
-                                     transformationMode());
+            image = image.scaled(image.width() * m_zoom,
+                                 image.height() * m_zoom,
+                                 Qt::KeepAspectRatio,
+                                 transformationMode());
 
             m_percent = m_zoom * 100;
         }
-
-        auto point = placeImage(resized);
-        painter.drawImage(point, resized);
     }
+
+    auto point = placeImage(image);
+    painter.drawImage(point, image);
 
     annotate(painter);
 }
@@ -407,6 +475,67 @@ MainWindow::placeImage(const QImage& image) const
     auto y = (height() / 2) - (image.height() / 2) + m_yOffset;
 
     return QPoint(x, y);
+}
+
+// ------------------------------------------------------------------------
+
+void
+MainWindow::readDirectory()
+{
+    m_files.clear();
+
+    if (m_directory.length() > 0)
+    {
+        QDirIterator iter(m_directory,
+                          {"*.bmp", "*.gif", "*.jpg", "*.jpeg", "*.png"},
+                          QDir::Files,
+                          QDirIterator::Subdirectories);
+        while (iter.hasNext())
+        {
+            m_files.append(iter.nextFileInfo());
+        }
+    }
+
+    if (m_files.size() > 0)
+    {
+        std::sort(
+            m_files.begin(),
+            m_files.end(),
+            [](const auto& lhs, const auto& rhs)
+            {
+                return lhs.absoluteFilePath() < rhs.absoluteFilePath();
+            });
+
+        m_current = 0;
+        openImage();
+
+        setMinimumSize(0, 0);
+        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    }
+    else
+    {
+        m_current = INVALID_INDEX;
+        m_image = QImage(splash,
+                         MainWindow::DEFAULT_WIDTH,
+                         MainWindow::DEFAULT_HEIGHT,
+                         QImage::Format_Grayscale8);
+
+        m_isSplash = true;
+
+        m_xOffset = 0;
+        m_yOffset = 0;
+
+        if (isFullScreen())
+        {
+            showNormal();
+        }
+        resize(MainWindow::DEFAULT_WIDTH,
+               MainWindow::DEFAULT_HEIGHT);
+        setFixedSize(MainWindow::DEFAULT_WIDTH,
+                     MainWindow::DEFAULT_HEIGHT);
+
+        repaint();
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -458,3 +587,4 @@ MainWindow::zoomedWidth() const
 
     return m_image.width() * zoom;
 }
+
