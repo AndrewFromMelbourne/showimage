@@ -10,7 +10,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 add_executable(showimage ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cxx
-                         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cxx)
+                         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cxx
+                         ${CMAKE_CURRENT_SOURCE_DIR}/src/splash.cxx)
 
 target_link_libraries(showimage PUBLIC Qt6::Widgets)
 
