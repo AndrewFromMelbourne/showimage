@@ -76,7 +76,11 @@ private:
     static const int MAX_ZOOM{5};
     static const int SCALE_OVERSIZED{0};
 
-    bool m_annotate;
+    static const int FONT_OFF{0};
+    static const int FONT_REGULAR{12};
+    static const int FONT_LARGE{24};
+
+    int m_annotate;
     int m_current;
     QString m_directory;
     QFileInfoList m_files;

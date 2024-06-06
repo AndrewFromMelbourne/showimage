@@ -42,7 +42,7 @@
 MainWindow::MainWindow(QWidget* parent)
 :
     QMainWindow(parent),
-    m_annotate{true},
+    m_annotate{FONT_REGULAR},
     m_current{-1},
     m_directory{},
     m_files{},
@@ -211,7 +211,23 @@ MainWindow::keyPressEvent(QKeyEvent* event)
 
         case Qt::Key_Z:
 
-            m_annotate = !m_annotate;
+            switch (m_annotate)
+            {
+            case FONT_OFF:
+
+                m_annotate = FONT_REGULAR;
+                break;
+
+            case FONT_REGULAR:
+
+                m_annotate = FONT_LARGE;
+                break;
+
+            case FONT_LARGE:
+
+                m_annotate = FONT_OFF;
+                break;
+            }
             repaint();
 
             break;
@@ -268,45 +284,47 @@ MainWindow::wheelEvent(QWheelEvent* event)
 void
 MainWindow::annotate(QPainter& painter)
 {
-    if (m_annotate and haveImages())
+    if (not m_annotate or not haveImages())
     {
-        painter.setPen(QPen(Qt::green));
-        painter.setFont(QFont("Helvetica", 12));
-
-        QString name = m_files[m_current].absoluteFilePath();
-        auto nameLength = name.length() - m_directory.length() - 1;
-        QString annotation = QString("%1").arg(name.right(nameLength));
-
-        annotation += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
-                                                  QString::number(m_image.height()));
-
-        annotation += QString(" [ %1 / %2 ]").arg(QString::number(m_current + 1),
-                                                  QString::number(m_files.size()));
-
-        annotation += QString(" %1%").arg(QString::number(m_percent));
-
-        if (not originalSize())
-        {
-            annotation += transformationLabel();
-        }
-
-        annotation += colourLabel();
-
-        if (m_zoom)
-        {
-            annotation += " [ x" + QString::number(m_zoom) + " ]";
-        }
-        else if (m_fitToScreen)
-        {
-            annotation += " [ FTS ]";
-        }
-        else
-        {
-            annotation += " [ FOS ]";
-        }
-
-        painter.drawText(4, 12, annotation);
+        return;
     }
+
+    painter.setPen(QPen(Qt::green));
+    painter.setFont(QFont("Helvetica", m_annotate));
+
+    QString name = m_files[m_current].absoluteFilePath();
+    auto nameLength = name.length() - m_directory.length() - 1;
+    QString annotation = QString("%1").arg(name.right(nameLength));
+
+    annotation += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
+                                                QString::number(m_image.height()));
+
+    annotation += QString(" [ %1 / %2 ]").arg(QString::number(m_current + 1),
+                                                QString::number(m_files.size()));
+
+    annotation += QString(" %1%").arg(QString::number(m_percent));
+
+    if (not originalSize())
+    {
+        annotation += transformationLabel();
+    }
+
+    annotation += colourLabel();
+
+    if (m_zoom)
+    {
+        annotation += " [ x" + QString::number(m_zoom) + " ]";
+    }
+    else if (m_fitToScreen)
+    {
+        annotation += " [ FTS ]";
+    }
+    else
+    {
+        annotation += " [ FOS ]";
+    }
+
+    painter.drawText(4, m_annotate, annotation);
 }
 
 // ------------------------------------------------------------------------
@@ -587,4 +605,3 @@ MainWindow::zoomedWidth() const
 
     return m_image.width() * zoom;
 }
-
