@@ -54,10 +54,13 @@ public:
 private:
 
     bool haveImages() const { return m_current != INVALID_INDEX; }
+    bool viewingImage() const { return not m_isBlank and not m_isSplash; }
     bool originalSize() const { return m_percent == 100; }
 
     void annotate(QPainter& painter);
     const char* colourLabel() const;
+    void handleGeneralKeys(int key);
+    void handleImageViewingKeys(int key);
     void imageNext();
     void imagePrevious();
     void openDirectory();
@@ -87,6 +90,7 @@ private:
     QImage m_image;
     bool m_fitToScreen;
     bool m_greyscale;
+    bool m_isBlank;
     bool m_isSplash;
     int m_percent;
     bool m_smoothScale;

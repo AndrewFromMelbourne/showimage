@@ -54,6 +54,7 @@ MainWindow::MainWindow(QWidget* parent)
     },
     m_fitToScreen{false},
     m_greyscale{false},
+    m_isBlank{false},
     m_isSplash{true},
     m_percent{100},
     m_smoothScale{true},
@@ -92,149 +93,13 @@ MainWindow::changeEvent(QEvent* event)
 void
 MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    switch (event->key())
+    const auto key{event->key()};
+
+    handleGeneralKeys(key);
+
+    if (viewingImage())
     {
-        case Qt::Key_Escape:
-
-            QCoreApplication::quit();
-
-            break;
-
-        case Qt::Key_Left:
-
-            imagePrevious();
-
-            break;
-
-        case Qt::Key_Right:
-
-            imageNext();
-
-            break;
-
-        case Qt::Key_Up:
-
-            if (m_zoom < MAX_ZOOM)
-            {
-                ++m_zoom;
-                repaint();
-            }
-
-            break;
-
-        case Qt::Key_Down:
-
-            if (m_zoom > 0)
-            {
-                --m_zoom;
-
-                if (m_zoom == 0)
-                {
-                    m_xOffset = 0;
-                    m_yOffset = 0;
-                }
-
-                repaint();
-            }
-
-            break;
-
-        case Qt::Key_A:
-
-            pan(10, 0);
-
-            break;
-
-        case Qt::Key_C:
-
-            m_xOffset = 0;
-            m_yOffset = 0;
-            repaint();
-
-            break;
-
-        case Qt::Key_D:
-
-            pan(-10, 0);
-
-            break;
-
-        case Qt::Key_F:
-
-            m_fitToScreen = !m_fitToScreen;
-            repaint();
-
-            break;
-
-        case Qt::Key_G:
-
-            m_greyscale = !m_greyscale;
-            repaint();
-
-            break;
-
-        case Qt::Key_O:
-
-            openDirectory();
-            readDirectory();
-
-            break;
-
-        case Qt::Key_R:
-
-            readDirectory();
-
-            break;
-
-        case Qt::Key_S:
-
-            pan(0, -10);
-
-            break;
-
-        case Qt::Key_W:
-
-            pan(0, 10);
-
-            break;
-
-        case Qt::Key_X:
-
-            m_smoothScale = !m_smoothScale;
-
-            if (not originalSize())
-            {
-                repaint();
-            }
-
-            break;
-
-        case Qt::Key_Z:
-
-            switch (m_annotate)
-            {
-            case FONT_OFF:
-
-                m_annotate = FONT_REGULAR;
-                break;
-
-            case FONT_REGULAR:
-
-                m_annotate = FONT_LARGE;
-                break;
-
-            case FONT_LARGE:
-
-                m_annotate = FONT_OFF;
-                break;
-            }
-            repaint();
-
-            break;
-
-        default:
-
-            break;
+        handleImageViewingKeys(key);
     }
 }
 
@@ -345,6 +210,177 @@ MainWindow::colourLabel() const
 // ------------------------------------------------------------------------
 
 void
+MainWindow::handleGeneralKeys(int key)
+{
+    switch (key)
+    {
+        case Qt::Key_Escape:
+
+            QCoreApplication::quit();
+
+            break;
+
+        case Qt::Key_Space:
+
+            m_isBlank = not m_isBlank;
+            repaint();
+
+            break;
+
+        case Qt::Key_O:
+
+            openDirectory();
+            readDirectory();
+
+            break;
+
+        case Qt::Key_R:
+
+            readDirectory();
+
+            break;
+
+        default:
+
+            break;
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+MainWindow::handleImageViewingKeys(int key)
+{
+    switch (key)
+    {
+        case Qt::Key_Left:
+
+            imagePrevious();
+
+            break;
+
+        case Qt::Key_Right:
+
+            imageNext();
+
+            break;
+
+        case Qt::Key_Up:
+
+            if (m_zoom < MAX_ZOOM)
+            {
+                ++m_zoom;
+                repaint();
+            }
+
+            break;
+
+        case Qt::Key_Down:
+
+            if (m_zoom > 0)
+            {
+                --m_zoom;
+
+                if (m_zoom == 0)
+                {
+                    m_xOffset = 0;
+                    m_yOffset = 0;
+                }
+
+                repaint();
+            }
+
+            break;
+
+        case Qt::Key_A:
+
+            pan(10, 0);
+
+            break;
+
+        case Qt::Key_C:
+
+            m_xOffset = 0;
+            m_yOffset = 0;
+            repaint();
+
+            break;
+
+        case Qt::Key_D:
+
+            pan(-10, 0);
+
+            break;
+
+        case Qt::Key_F:
+
+            m_fitToScreen = !m_fitToScreen;
+            repaint();
+
+            break;
+
+        case Qt::Key_G:
+
+            m_greyscale = !m_greyscale;
+            repaint();
+
+            break;
+
+        case Qt::Key_S:
+
+            pan(0, -10);
+
+            break;
+
+        case Qt::Key_W:
+
+            pan(0, 10);
+
+            break;
+
+        case Qt::Key_X:
+
+            m_smoothScale = !m_smoothScale;
+
+            if (not originalSize())
+            {
+                repaint();
+            }
+
+            break;
+
+        case Qt::Key_Z:
+
+            switch (m_annotate)
+            {
+            case FONT_OFF:
+
+                m_annotate = FONT_REGULAR;
+                break;
+
+            case FONT_REGULAR:
+
+                m_annotate = FONT_LARGE;
+                break;
+
+            case FONT_LARGE:
+
+                m_annotate = FONT_OFF;
+                break;
+            }
+            repaint();
+
+            break;
+
+        default:
+
+            break;
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
 MainWindow::imageNext()
 {
     if (haveImages())
@@ -425,6 +461,11 @@ MainWindow::paint(QPainter& painter)
     {
         auto point = placeImage(m_image);
         painter.drawImage(point, m_image);
+        return;
+    }
+
+    if (m_isBlank)
+    {
         return;
     }
 
