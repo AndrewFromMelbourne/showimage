@@ -157,15 +157,15 @@ MainWindow::annotate(QPainter& painter)
     painter.setPen(QPen(Qt::green));
     painter.setFont(QFont("Helvetica", m_annotate));
 
-    QString name = m_files[m_current].absoluteFilePath();
+    auto name = m_files[m_current].absoluteFilePath();
     auto nameLength = name.length() - m_directory.length() - 1;
-    QString annotation = QString("%1").arg(name.right(nameLength));
+    auto annotation = QString("%1").arg(name.right(nameLength));
 
     annotation += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
-                                                QString::number(m_image.height()));
+                                              QString::number(m_image.height()));
 
     annotation += QString(" [ %1 / %2 ]").arg(QString::number(m_current + 1),
-                                                QString::number(m_files.size()));
+                                              QString::number(m_files.size()));
 
     annotation += QString(" %1%").arg(QString::number(m_percent));
 
@@ -475,9 +475,9 @@ MainWindow::paint(QPainter& painter)
         m_yOffset = 0;
     }
 
-    QImage image = (m_greyscale)
-                 ? m_image.convertToFormat(QImage::Format_Grayscale8)
-                 : m_image;
+    auto image = (m_greyscale)
+               ? m_image.convertToFormat(QImage::Format_Grayscale8)
+               : m_image;
 
     if (((m_zoom == SCALE_OVERSIZED) and not oversize() and not m_fitToScreen) or (m_zoom == 1))
     {
@@ -646,3 +646,4 @@ MainWindow::zoomedWidth() const
 
     return m_image.width() * zoom;
 }
+
