@@ -49,6 +49,7 @@ public:
     void keyPressEvent(QKeyEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void paintEvent(QPaintEvent*) override;
+    void resizeEvent(QResizeEvent *event) override;
     void wheelEvent(QWheelEvent* event) override;
 
 private:
@@ -69,6 +70,7 @@ private:
     void paint(QPainter& painter);
     void pan(int x, int y);
     QPoint placeImage(const QImage& image) const;
+    void processImage();
     void readDirectory();
     const char* transformationLabel() const;
     Qt::TransformationMode transformationMode() const;
@@ -87,9 +89,10 @@ private:
     int m_current;
     QString m_directory;
     QFileInfoList m_files;
-    QImage m_image;
     bool m_fitToScreen;
     bool m_greyscale;
+    QImage m_image;
+    QImage m_imageProcessed;
     bool m_isBlank;
     bool m_isSplash;
     int m_percent;

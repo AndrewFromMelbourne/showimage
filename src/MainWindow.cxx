@@ -46,14 +46,15 @@ MainWindow::MainWindow(QWidget* parent)
     m_current{-1},
     m_directory{},
     m_files{},
+    m_fitToScreen{false},
+    m_greyscale{false},
     m_image{
         splash,
         MainWindow::DEFAULT_WIDTH,
         MainWindow::DEFAULT_HEIGHT,
         QImage::Format_Grayscale8
     },
-    m_fitToScreen{false},
-    m_greyscale{false},
+    m_imageProcessed{},
     m_isBlank{false},
     m_isSplash{true},
     m_percent{100},
@@ -128,6 +129,15 @@ MainWindow::paintEvent(QPaintEvent*)
 }
 
 // ------------------------------------------------------------------------
+
+void
+MainWindow::resizeEvent(QResizeEvent *event)
+{
+    processImage();
+}
+
+// ------------------------------------------------------------------------
+
 
 void
 MainWindow::wheelEvent(QWheelEvent* event)
@@ -270,6 +280,7 @@ MainWindow::handleImageViewingKeys(int key)
             if (m_zoom < MAX_ZOOM)
             {
                 ++m_zoom;
+                processImage();
                 repaint();
             }
 
@@ -287,6 +298,7 @@ MainWindow::handleImageViewingKeys(int key)
                     m_yOffset = 0;
                 }
 
+                processImage();
                 repaint();
             }
 
@@ -315,6 +327,7 @@ MainWindow::handleImageViewingKeys(int key)
         case Qt::Key_F:
 
             m_fitToScreen = !m_fitToScreen;
+            processImage();
             repaint();
 
             break;
@@ -322,6 +335,7 @@ MainWindow::handleImageViewingKeys(int key)
         case Qt::Key_G:
 
             m_greyscale = !m_greyscale;
+            processImage();
             repaint();
 
             break;
@@ -344,6 +358,7 @@ MainWindow::handleImageViewingKeys(int key)
 
             if (not originalSize())
             {
+                processImage();
                 repaint();
             }
 
@@ -449,6 +464,7 @@ MainWindow::openImage()
     m_xOffset = 0;
     m_yOffset = 0;
 
+    processImage();
     repaint();
 }
 
@@ -475,38 +491,8 @@ MainWindow::paint(QPainter& painter)
         m_yOffset = 0;
     }
 
-    auto image = (m_greyscale)
-               ? m_image.convertToFormat(QImage::Format_Grayscale8)
-               : m_image;
-
-    if (((m_zoom == SCALE_OVERSIZED) and not oversize() and not m_fitToScreen) or (m_zoom == 1))
-    {
-        m_percent = 100;
-    }
-    else
-    {
-        if (m_zoom == SCALE_OVERSIZED)
-        {
-            image = image.scaled(QSize(width(), height()),
-                                 Qt::KeepAspectRatio,
-                                 transformationMode());
-
-            auto percent = (100.0 * image.width()) / m_image.width();
-            m_percent = static_cast<int>(0.5 + percent);
-        }
-        else
-        {
-            image = image.scaled(image.width() * m_zoom,
-                                 image.height() * m_zoom,
-                                 Qt::KeepAspectRatio,
-                                 transformationMode());
-
-            m_percent = m_zoom * 100;
-        }
-    }
-
-    auto point = placeImage(image);
-    painter.drawImage(point, image);
+    auto point = placeImage(m_imageProcessed);
+    painter.drawImage(point, m_imageProcessed);
 
     annotate(painter);
 }
@@ -534,6 +520,44 @@ MainWindow::placeImage(const QImage& image) const
     auto y = (height() / 2) - (image.height() / 2) + m_yOffset;
 
     return QPoint(x, y);
+}
+
+// ------------------------------------------------------------------------
+
+void
+MainWindow::processImage()
+{
+    m_imageProcessed = (m_greyscale)
+                     ? m_image.convertToFormat(QImage::Format_Grayscale8)
+                     : m_image;
+
+    if (((m_zoom == SCALE_OVERSIZED) and
+        not oversize() and
+        not m_fitToScreen) or (m_zoom == 1))
+    {
+        m_percent = 100;
+    }
+    else
+    {
+        if (m_zoom == SCALE_OVERSIZED)
+        {
+            m_imageProcessed = m_imageProcessed.scaled(QSize(width(), height()),
+                                                       Qt::KeepAspectRatio,
+                                                       transformationMode());
+
+            auto percent = (100.0 * m_imageProcessed.width()) / m_image.width();
+            m_percent = static_cast<int>(0.5 + percent);
+        }
+        else
+        {
+            m_imageProcessed = m_imageProcessed.scaled(m_imageProcessed.width() * m_zoom,
+                                                       m_imageProcessed.height() * m_zoom,
+                                                       Qt::KeepAspectRatio,
+                                                       transformationMode());
+
+            m_percent = m_zoom * 100;
+        }
+    }
 }
 
 // ------------------------------------------------------------------------
