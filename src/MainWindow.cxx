@@ -387,6 +387,19 @@ MainWindow::handleImageViewingKeys(int key)
 
             break;
 
+        case Qt::Key_F11:
+
+            if (windowState() == Qt::WindowFullScreen)
+            {
+                showNormal();
+            }
+            else
+            {
+                showFullScreen();
+            }
+
+            break;
+
         default:
 
             break;
