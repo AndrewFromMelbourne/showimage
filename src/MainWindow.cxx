@@ -37,7 +37,135 @@
 #include <algorithm>
 #include <iostream>
 
+// ========================================================================
+
+namespace
+{
+
 // ------------------------------------------------------------------------
+
+double
+flerp(
+    double value1,
+    double value2,
+    double alpha)
+{
+    return (value1 * (1.0 - alpha)) + (value2 * alpha);
+}
+
+// ------------------------------------------------------------------------
+
+double
+diameter(const QImage& image)
+{
+    return sqrt((image.width() * image.width()) +
+                 (image.height() * image.height()));
+}
+
+
+// ------------------------------------------------------------------------
+
+QImage
+blur(
+    const QImage& input,
+    double smallDiameter)
+{
+    const auto width = input.width();
+    const auto height = input.height();
+    const auto inDiameter = diameter(input);
+    const auto scaleDown = smallDiameter / inDiameter;
+
+    int w = static_cast<int>(round(scaleDown * width));
+    int h = static_cast<int>(round(scaleDown * height));
+
+    const QImage small = input.scaled(w,
+                                      h,
+                                      Qt::IgnoreAspectRatio,
+                                      Qt::SmoothTransformation);
+
+    return small.scaled(width,
+                        height,
+                        Qt::IgnoreAspectRatio,
+                        Qt::SmoothTransformation);
+}
+
+// ------------------------------------------------------------------------
+
+QImage
+maximum(const QImage& input)
+{
+    const auto width = input.width();
+    const auto height = input.height();
+
+    QImage output{width, height, QImage::Format_Grayscale8};
+
+    for (auto j = 0 ; j < height ; ++j)
+    {
+        for (auto i = 0 ; i < width ; ++i)
+        {
+            const auto c = input.pixelColor(i, j);
+            const auto value = std::max({c.red(), c.green(), c.blue()});
+            output.setPixelColor(i, j, QColor(value, value, value));
+        }
+    }
+
+    return output;
+}
+
+// ------------------------------------------------------------------------
+//
+// Base on Enlighten by Paul Haeberli
+//
+// https://github.com/PaulHaeberli/Enlighten
+//
+// ------------------------------------------------------------------------
+
+QImage
+enlighten(
+    const QImage& input,
+    double strength)
+{
+    auto mb = blur(maximum(input), 20.0);
+    const auto width = input.width();
+    const auto height = input.height();
+
+    QImage output{width, height, input.format()};
+
+    const auto strength2 = strength * strength;
+    const auto minI = 1.0 / flerp(1.0, 10.0, strength2);
+    const auto maxI = 1.0 / flerp(1.0, 1.111, strength2);
+
+    for (auto j = 0 ; j < height ; ++j)
+    {
+        for (auto i = 0 ; i < width ; ++i)
+        {
+            auto c = input.pixelColor(i, j);
+            const auto max = mb.pixelColor(i, j).red();
+            const auto illumination = std::clamp(max / 255.0, minI, maxI);
+
+            if (illumination < maxI)
+            {
+                const auto p = illumination / maxI;
+                const auto scale = (0.4 + (p * 0.6)) / p;
+
+                c.setRed(std::clamp(static_cast<int>(c.red() * scale), 0, 255));
+                c.setGreen(std::clamp(static_cast<int>(c.green() * scale), 0, 255));
+                c.setBlue(std::clamp(static_cast<int>(c.blue() * scale), 0, 255));
+            }
+
+            output.setPixelColor(i, j, c);
+        }
+    }
+
+    return output;
+}
+
+// ------------------------------------------------------------------------
+
+}
+
+// ========================================================================
+
 
 MainWindow::MainWindow(QWidget* parent)
 :
@@ -45,6 +173,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_annotate{FONT_REGULAR},
     m_current{-1},
     m_directory{},
+    m_enlighten{0},
     m_files{},
     m_fitToScreen{false},
     m_greyscale{false},
@@ -199,6 +328,8 @@ MainWindow::annotate(QPainter& painter)
         annotation += " [ FOS ]";
     }
 
+    annotation += " [ enlighten " + QString::number(m_enlighten * 10) + "% ]";
+
     painter.drawText(4, m_annotate, annotation);
 }
 
@@ -321,6 +452,21 @@ MainWindow::handleImageViewingKeys(int key)
         case Qt::Key_D:
 
             pan(-10, 0);
+
+            break;
+
+        case Qt::Key_E:
+
+            if (m_enlighten < 10)
+            {
+                ++m_enlighten;
+            }
+            else
+            {
+                m_enlighten = 0;
+            }
+            processImage();
+            repaint();
 
             break;
 
@@ -543,6 +689,11 @@ MainWindow::processImage()
     m_imageProcessed = (m_greyscale)
                      ? m_image.convertToFormat(QImage::Format_Grayscale8)
                      : m_image;
+
+    if (not m_greyscale and (m_enlighten > 0))
+    {
+        m_imageProcessed = enlighten(m_imageProcessed, m_enlighten / 10.0);
+    }
 
     if (((m_zoom == SCALE_OVERSIZED) and
         not oversize() and

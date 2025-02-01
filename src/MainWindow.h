@@ -88,6 +88,7 @@ private:
     int m_annotate;
     int m_current;
     QString m_directory;
+    int m_enlighten;
     QFileInfoList m_files;
     bool m_fitToScreen;
     bool m_greyscale;

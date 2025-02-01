@@ -42,6 +42,7 @@ function init()
     keyboardKeyGlyph('canvas_a', "A", letterBump);
     keyboardKeyGlyph('canvas_c', "C", letterBump);
     keyboardKeyGlyph('canvas_d', "D", letterBump);
+    keyboardKeyGlyph('canvas_e', "E", letterBump);
     keyboardKeyGlyph('canvas_f', "F", letterBump);
     keyboardKeyGlyph('canvas_g', "G", letterBump);
     keyboardKeyGlyph('canvas_o', "O", letterBump);
@@ -56,6 +57,9 @@ function init()
     keyboardKeyGlyph('canvas_down', "↓", verticalArrowBump);
 
     keyboardTextKey('canvas_esc', "Esc", 0);
+    keyboardTextKey('canvas_f11', "F11", 0);
+
+    keyboardSpacebarGlyph('canvas_space');
 }
 
 //------------------------------------------------------------------------
@@ -92,6 +96,31 @@ function keyboardKeyGlyph(id, glyph, nudgeDown)
 
 //------------------------------------------------------------------------
 
+function keyboardSpacebarGlyph(id)
+{
+    var canvas = document.getElementById(id);
+    var context = canvas.getContext('2d');
+
+    context.save();
+
+    context.lineWidth = 2.0;
+    context.roundedRect(3, 3, 152, 34, 8);
+    context.fillStyle = "black";
+    context.fill();
+    context.strokeStyle = "white";
+    context.stroke();
+
+    context.font = "12pt Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "white";
+    context.fillText("Space", 80, 20);
+
+    context.restore();
+}
+
+//------------------------------------------------------------------------
+
 function keyboardTextKey(id, text, nudgeDown)
 {
     var canvas = document.getElementById(id);
@@ -118,7 +147,7 @@ function keyboardTextKey(id, text, nudgeDown)
 
     #wrapper 
     {
-        width: 304px;
+        width: 348px;
         height: 130px;
         margin-top: 3px;
         margin-left: auto;
@@ -139,6 +168,7 @@ function keyboardTextKey(id, text, nudgeDown)
     <canvas id="canvas_a" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_c" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_d" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_e" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_f" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_g" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_o" width="40" height="40">No canvas support! </canvas>
@@ -152,6 +182,8 @@ function keyboardTextKey(id, text, nudgeDown)
     <canvas id="canvas_up" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_down" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_esc" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_f11" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_space" width="160" height="40">No canvas support! </canvas>
 </div>
 
 </body>
