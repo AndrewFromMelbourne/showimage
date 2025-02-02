@@ -101,11 +101,12 @@ maximum(const QImage& input)
 
     for (auto j = 0 ; j < height ; ++j)
     {
+        auto outputRow = output.scanLine(j);
+
         for (auto i = 0 ; i < width ; ++i)
         {
             const auto c = input.pixelColor(i, j);
-            const auto value = std::max({c.red(), c.green(), c.blue()});
-            output.setPixelColor(i, j, QColor(value, value, value));
+            *(outputRow++) = std::max({c.red(), c.green(), c.blue()});
         }
     }
 
@@ -129,7 +130,7 @@ enlighten(
     const auto width = input.width();
     const auto height = input.height();
 
-    QImage output{width, height, input.format()};
+    QImage output{width, height, QImage::Format_RGB32};
 
     const auto strength2 = strength * strength;
     const auto minI = 1.0 / flerp(1.0, 10.0, strength2);
@@ -137,10 +138,13 @@ enlighten(
 
     for (auto j = 0 ; j < height ; ++j)
     {
+        auto mbRow = mb.scanLine(j);
+        auto outputRow = reinterpret_cast<QRgb*>(output.scanLine(j));
+
         for (auto i = 0 ; i < width ; ++i)
         {
-            auto c = input.pixelColor(i, j);
-            const auto max = mb.pixelColor(i, j).red();
+            auto c = input.pixel(i, j);
+            const auto max = *(mbRow++);
             const auto illumination = std::clamp(max / 255.0, minI, maxI);
 
             if (illumination < maxI)
@@ -148,12 +152,14 @@ enlighten(
                 const auto p = illumination / maxI;
                 const auto scale = (0.4 + (p * 0.6)) / p;
 
-                c.setRed(std::clamp(static_cast<int>(c.red() * scale), 0, 255));
-                c.setGreen(std::clamp(static_cast<int>(c.green() * scale), 0, 255));
-                c.setBlue(std::clamp(static_cast<int>(c.blue() * scale), 0, 255));
+                const auto red = static_cast<int>(std::clamp(qRed(c) * scale, 0.0, 255.0));
+                const auto green = static_cast<int>(std::clamp(qGreen(c) * scale, 0.0, 255.0));
+                const auto blue = static_cast<int>(std::clamp(qBlue(c) * scale, 0.0, 255.0));
+
+                c = qRgb(red, green, blue);
             }
 
-            output.setPixelColor(i, j, c);
+            *(outputRow++) = c;
         }
     }
 
@@ -328,7 +334,9 @@ MainWindow::annotate(QPainter& painter)
         annotation += " [ FOS ]";
     }
 
-    annotation += " [ enlighten " + QString::number(m_enlighten * 10) + "% ]";
+    annotation += " [ enlighten " +
+                      QString::number(m_enlighten * 10) +
+                      "% ]";
 
     painter.drawText(4, m_annotate, annotation);
 }
@@ -623,6 +631,8 @@ MainWindow::openImage()
     m_xOffset = 0;
     m_yOffset = 0;
 
+    m_enlighten = 0;
+
     processImage();
     repaint();
 }
@@ -690,7 +700,7 @@ MainWindow::processImage()
                      ? m_image.convertToFormat(QImage::Format_Grayscale8)
                      : m_image;
 
-    if (not m_greyscale and (m_enlighten > 0))
+    if (m_enlighten > 0)
     {
         m_imageProcessed = enlighten(m_imageProcessed, m_enlighten / 10.0);
     }
