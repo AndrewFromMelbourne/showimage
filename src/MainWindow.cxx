@@ -31,6 +31,7 @@
 #include <QApplication>
 #include <QDirIterator>
 #include <QFileDialog>
+#include <QFontMetrics>
 #include <QImageReader>
 #include <QKeyEvent>
 
@@ -75,8 +76,8 @@ blur(
     const auto inDiameter = diameter(input);
     const auto scaleDown = smallDiameter / inDiameter;
 
-    int w = static_cast<int>(round(scaleDown * width));
-    int h = static_cast<int>(round(scaleDown * height));
+    const auto w = static_cast<int>(round(scaleDown * width));
+    const auto h = static_cast<int>(round(scaleDown * height));
 
     const QImage small = input.scaled(w,
                                       h,
@@ -115,7 +116,7 @@ maximum(const QImage& input)
 
 // ------------------------------------------------------------------------
 //
-// Base on Enlighten by Paul Haeberli
+// Based on Enlighten by Paul Haeberli
 //
 // https://github.com/PaulHaeberli/Enlighten
 //
@@ -126,7 +127,7 @@ enlighten(
     const QImage& input,
     double strength)
 {
-    auto mb = blur(maximum(input), 20.0);
+    const auto mb = blur(maximum(input), 20.0);
     const auto width = input.width();
     const auto height = input.height();
 
@@ -299,46 +300,53 @@ MainWindow::annotate(QPainter& painter)
         return;
     }
 
-    painter.setPen(QPen(Qt::green));
-    painter.setFont(QFont("Helvetica", m_annotate));
+    const auto text = annotation();
+    static constexpr int padding{4};
+    const QFont font("Helvetica", m_annotate);
 
+    QFontMetrics metrics(font);
+    auto bound{metrics.boundingRect(text)};
+    QRect rect
+    {
+        0,
+        0,
+        bound.width() + 2 * padding,
+        bound.height() + 2 * padding
+    };
+    painter.fillRect(rect, QBrush(QColor(0, 0, 0, 128)));
+
+    painter.setPen(QPen(Qt::green));
+    painter.setFont(font);
+    painter.drawText(padding, m_annotate, text);
+}
+
+// ------------------------------------------------------------------------
+
+QString
+MainWindow::annotation() const
+{
     auto name = m_files[m_current].absoluteFilePath();
     auto nameLength = name.length() - m_directory.length() - 1;
-    auto annotation = QString("%1").arg(name.right(nameLength));
+    auto text = QString("%1").arg(name.right(nameLength));
 
-    annotation += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
-                                              QString::number(m_image.height()));
+    text += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
+                                        QString::number(m_image.height()));
 
-    annotation += QString(" [ %1 / %2 ]").arg(QString::number(m_current + 1),
-                                              QString::number(m_files.size()));
+    text += QString(" [ %1 / %2 ]").arg(QString::number(m_current + 1),
+                                        QString::number(m_files.size()));
 
-    annotation += QString(" %1%").arg(QString::number(m_percent));
+    text += QString(" %1%").arg(QString::number(m_percent));
 
     if (not originalSize())
     {
-        annotation += transformationLabel();
+        text += transformationLabel();
     }
 
-    annotation += colourLabel();
+    text += colourLabel();
+    text += fitToScreenLabel();
+    text += QString(" [ enlighten %1% ]").arg(QString::number(m_enlighten * 10));
 
-    if (m_zoom)
-    {
-        annotation += " [ x" + QString::number(m_zoom) + " ]";
-    }
-    else if (m_fitToScreen)
-    {
-        annotation += " [ FTS ]";
-    }
-    else
-    {
-        annotation += " [ FOS ]";
-    }
-
-    annotation += " [ enlighten " +
-                      QString::number(m_enlighten * 10) +
-                      "% ]";
-
-    painter.drawText(4, m_annotate, annotation);
+    return text;
 }
 
 // ------------------------------------------------------------------------
@@ -353,6 +361,21 @@ MainWindow::colourLabel() const
     else
     {
         return " [ colour ]";
+    }
+}
+
+// ------------------------------------------------------------------------
+
+const char*
+MainWindow::fitToScreenLabel() const
+{
+    if (m_fitToScreen)
+    {
+        return " [ FTS ]";
+    }
+    else
+    {
+        return " [ FOS ]";
     }
 }
 
@@ -844,4 +867,3 @@ MainWindow::zoomedWidth() const
 
     return m_image.width() * zoom;
 }
-

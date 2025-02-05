@@ -59,7 +59,9 @@ private:
     bool originalSize() const { return m_percent == 100; }
 
     void annotate(QPainter& painter);
+    QString annotation() const;
     const char* colourLabel() const;
+    const char* fitToScreenLabel() const;
     void handleGeneralKeys(int key);
     void handleImageViewingKeys(int key);
     void imageNext();
