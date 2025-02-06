@@ -69,25 +69,57 @@ diameter(const QImage& image)
 QImage
 blur(
     const QImage& input,
-    double smallDiameter)
+    int radius)
 {
     const auto width = input.width();
     const auto height = input.height();
-    const auto inDiameter = diameter(input);
-    const auto scaleDown = smallDiameter / inDiameter;
+    const auto diameter = 2 * radius + 1;
 
-    const auto w = static_cast<int>(round(scaleDown * width));
-    const auto h = static_cast<int>(round(scaleDown * height));
+    // row blurred image
+    QImage rb{width, height, QImage::Format_Grayscale8};
 
-    const QImage small = input.scaled(w,
-                                      h,
-                                      Qt::IgnoreAspectRatio,
-                                      Qt::SmoothTransformation);
+    for (auto j = 0 ; j < height ; ++j)
+    {
+        const auto* row = input.scanLine(j);
+        auto* outputRow = rb.scanLine(j);
 
-    return small.scaled(width,
-                        height,
-                        Qt::IgnoreAspectRatio,
-                        Qt::SmoothTransformation);
+        int sum{0};
+
+        for (auto k = -radius - 1 ; k < radius ; ++k)
+        {
+            sum += *(row + std::clamp(k, 0, width - 1));
+        }
+
+        for (auto i = 0 ; i < width ; ++i)
+        {
+            sum += *(row + std::clamp(i + radius, 0, width - 1));
+            sum -= *(row + std::clamp(i - radius - 1, 0, width - 1));
+
+            outputRow[i] = sum / diameter;
+        }
+    }
+
+    QImage output{width, height, QImage::Format_Grayscale8};
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        int sum{0};
+
+        for (auto k = -radius - 1 ; k < radius ; ++k)
+        {
+            sum += *(rb.scanLine(std::clamp(k, 0, height - 1)) + i);
+        }
+
+        for (auto j = 0 ; j < height ; ++j)
+        {
+            sum += *(rb.scanLine(std::clamp(j + radius, 0, height - 1)) + i);
+            sum -= *(rb.scanLine(std::clamp(j - radius - 1, 0, height - 1)) + i);
+
+            *(output.scanLine(j) + i) = sum / diameter;
+        }
+    }
+
+    return output;
 }
 
 // ------------------------------------------------------------------------
@@ -127,7 +159,7 @@ enlighten(
     const QImage& input,
     double strength)
 {
-    const auto mb = blur(maximum(input), 20.0);
+    const auto mb = blur(maximum(input), 12);
     const auto width = input.width();
     const auto height = input.height();
 
@@ -172,7 +204,6 @@ enlighten(
 }
 
 // ========================================================================
-
 
 MainWindow::MainWindow(QWidget* parent)
 :
@@ -274,7 +305,6 @@ MainWindow::resizeEvent(QResizeEvent *event)
 
 // ------------------------------------------------------------------------
 
-
 void
 MainWindow::wheelEvent(QWheelEvent* event)
 {
@@ -302,7 +332,7 @@ MainWindow::annotate(QPainter& painter)
 
     const auto text = annotation();
     static constexpr int padding{4};
-    const QFont font("Helvetica", m_annotate);
+    const QFont font("Mulish", m_annotate);
 
     QFontMetrics metrics(font);
     auto bound{metrics.boundingRect(text)};
@@ -317,7 +347,7 @@ MainWindow::annotate(QPainter& painter)
 
     painter.setPen(QPen(Qt::green));
     painter.setFont(font);
-    painter.drawText(padding, m_annotate, text);
+    painter.drawText(padding, m_annotate + padding, text);
 }
 
 // ------------------------------------------------------------------------
