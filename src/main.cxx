@@ -28,7 +28,7 @@
 #include <QApplication>
 #include <QPalette>
 
-#include "MainWindow.h"
+#include "ShowImage.h"
 
 // ------------------------------------------------------------------------
 

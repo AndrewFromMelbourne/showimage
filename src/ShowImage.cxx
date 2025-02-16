@@ -25,7 +25,7 @@
 //
 //-------------------------------------------------------------------------
 
-#include "MainWindow.h"
+#include "ShowImage.h"
 #include "splash.h"
 
 #include <QApplication>
