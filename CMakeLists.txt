@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 project(showimage)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -9,7 +9,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
-add_executable(showimage ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cxx
+add_executable(showimage ${CMAKE_CURRENT_SOURCE_DIR}/src/ShowImage.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/splash.cxx)
 

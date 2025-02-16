@@ -205,7 +205,7 @@ enlighten(
 
 // ========================================================================
 
-MainWindow::MainWindow(QWidget* parent)
+ShowImage::ShowImage(QWidget* parent)
 :
     QMainWindow(parent),
     m_annotate{FONT_REGULAR},
@@ -217,8 +217,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_greyscale{false},
     m_image{
         splash,
-        MainWindow::DEFAULT_WIDTH,
-        MainWindow::DEFAULT_HEIGHT,
+        ShowImage::DEFAULT_WIDTH,
+        ShowImage::DEFAULT_HEIGHT,
         QImage::Format_Grayscale8
     },
     m_imageProcessed{},
@@ -234,14 +234,14 @@ MainWindow::MainWindow(QWidget* parent)
 
 // ------------------------------------------------------------------------
 
-MainWindow::~MainWindow()
+ShowImage::~ShowImage()
 {
 }
 
 // ------------------------------------------------------------------------
 
 void
-MainWindow::changeEvent(QEvent* event)
+ShowImage::changeEvent(QEvent* event)
 {
     if (event->type() == QEvent::WindowStateChange)
     {
@@ -259,7 +259,7 @@ MainWindow::changeEvent(QEvent* event)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::keyPressEvent(QKeyEvent* event)
+ShowImage::keyPressEvent(QKeyEvent* event)
 {
     const auto key{event->key()};
 
@@ -274,7 +274,7 @@ MainWindow::keyPressEvent(QKeyEvent* event)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::mousePressEvent(QMouseEvent* event)
+ShowImage::mousePressEvent(QMouseEvent* event)
 {
     if (event->buttons() & Qt::LeftButton)
     {
@@ -289,7 +289,7 @@ MainWindow::mousePressEvent(QMouseEvent* event)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::paintEvent(QPaintEvent*)
+ShowImage::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
     paint(painter);
@@ -298,7 +298,7 @@ MainWindow::paintEvent(QPaintEvent*)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::resizeEvent(QResizeEvent *event)
+ShowImage::resizeEvent(QResizeEvent *event)
 {
     processImage();
 }
@@ -306,7 +306,7 @@ MainWindow::resizeEvent(QResizeEvent *event)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::wheelEvent(QWheelEvent* event)
+ShowImage::wheelEvent(QWheelEvent* event)
 {
      auto delta = event->angleDelta();
 
@@ -323,7 +323,7 @@ MainWindow::wheelEvent(QWheelEvent* event)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::annotate(QPainter& painter)
+ShowImage::annotate(QPainter& painter)
 {
     if (not m_annotate or not haveImages())
     {
@@ -353,7 +353,7 @@ MainWindow::annotate(QPainter& painter)
 // ------------------------------------------------------------------------
 
 QString
-MainWindow::annotation() const
+ShowImage::annotation() const
 {
     auto name = m_files[m_current].absoluteFilePath();
     auto nameLength = name.length() - m_directory.length() - 1;
@@ -382,7 +382,7 @@ MainWindow::annotation() const
 // ------------------------------------------------------------------------
 
 const char*
-MainWindow::colourLabel() const
+ShowImage::colourLabel() const noexcept
 {
     if (m_greyscale)
     {
@@ -397,7 +397,7 @@ MainWindow::colourLabel() const
 // ------------------------------------------------------------------------
 
 const char*
-MainWindow::fitToScreenLabel() const
+ShowImage::fitToScreenLabel() const noexcept
 {
     if (m_fitToScreen)
     {
@@ -412,7 +412,7 @@ MainWindow::fitToScreenLabel() const
 // ------------------------------------------------------------------------
 
 void
-MainWindow::handleGeneralKeys(int key)
+ShowImage::handleGeneralKeys(int key)
 {
     switch (key)
     {
@@ -451,7 +451,7 @@ MainWindow::handleGeneralKeys(int key)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::handleImageViewingKeys(int key)
+ShowImage::handleImageViewingKeys(int key)
 {
     switch (key)
     {
@@ -616,7 +616,7 @@ MainWindow::handleImageViewingKeys(int key)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::imageNext()
+ShowImage::imageNext()
 {
     if (haveImages())
     {
@@ -634,7 +634,7 @@ MainWindow::imageNext()
 // ------------------------------------------------------------------------
 
 void
-MainWindow::imagePrevious()
+ShowImage::imagePrevious()
 {
     if (haveImages())
     {
@@ -652,7 +652,7 @@ MainWindow::imagePrevious()
 // ------------------------------------------------------------------------
 
 void
-MainWindow::openDirectory()
+ShowImage::openDirectory()
 {
     m_directory = QFileDialog::getExistingDirectory(this, "Image folder");
 }
@@ -660,7 +660,7 @@ MainWindow::openDirectory()
 // ------------------------------------------------------------------------
 
 bool
-MainWindow::oversize() const
+ShowImage::oversize() const noexcept
 {
     if ((zoomedWidth() > width()) or (zoomedHeight() > height()))
     {
@@ -675,7 +675,7 @@ MainWindow::oversize() const
 // ------------------------------------------------------------------------
 
 void
-MainWindow::openImage()
+ShowImage::openImage()
 {
     QImageReader reader{m_files[m_current].filePath()};
     m_image = reader.read();
@@ -693,7 +693,7 @@ MainWindow::openImage()
 // ------------------------------------------------------------------------
 
 void
-MainWindow::paint(QPainter& painter)
+ShowImage::paint(QPainter& painter)
 {
     if (m_isSplash)
     {
@@ -722,7 +722,7 @@ MainWindow::paint(QPainter& painter)
 // ------------------------------------------------------------------------
 
 void
-MainWindow::pan(int x, int y)
+ShowImage::pan(int x, int y)
 {
     if (oversize() and (m_zoom != SCALE_OVERSIZED))
     {
@@ -736,7 +736,7 @@ MainWindow::pan(int x, int y)
 // ------------------------------------------------------------------------
 
 QPoint
-MainWindow::placeImage(const QImage& image) const
+ShowImage::placeImage(const QImage& image) const noexcept
 {
     auto x = (width() / 2) - (image.width() / 2) + m_xOffset;
     auto y = (height() / 2) - (image.height() / 2) + m_yOffset;
@@ -747,7 +747,7 @@ MainWindow::placeImage(const QImage& image) const
 // ------------------------------------------------------------------------
 
 void
-MainWindow::processImage()
+ShowImage::processImage()
 {
     m_imageProcessed = (m_greyscale)
                      ? m_image.convertToFormat(QImage::Format_Grayscale8)
@@ -790,7 +790,7 @@ MainWindow::processImage()
 // ------------------------------------------------------------------------
 
 void
-MainWindow::readDirectory()
+ShowImage::readDirectory()
 {
     m_files.clear();
 
@@ -826,8 +826,8 @@ MainWindow::readDirectory()
     {
         m_current = INVALID_INDEX;
         m_image = QImage(splash,
-                         MainWindow::DEFAULT_WIDTH,
-                         MainWindow::DEFAULT_HEIGHT,
+                         ShowImage::DEFAULT_WIDTH,
+                         ShowImage::DEFAULT_HEIGHT,
                          QImage::Format_Grayscale8);
 
         m_isSplash = true;
@@ -839,10 +839,10 @@ MainWindow::readDirectory()
         {
             showNormal();
         }
-        resize(MainWindow::DEFAULT_WIDTH,
-               MainWindow::DEFAULT_HEIGHT);
-        setFixedSize(MainWindow::DEFAULT_WIDTH,
-                     MainWindow::DEFAULT_HEIGHT);
+        resize(ShowImage::DEFAULT_WIDTH,
+               ShowImage::DEFAULT_HEIGHT);
+        setFixedSize(ShowImage::DEFAULT_WIDTH,
+                     ShowImage::DEFAULT_HEIGHT);
 
         repaint();
     }
@@ -851,7 +851,7 @@ MainWindow::readDirectory()
 // ------------------------------------------------------------------------
 
 const char*
-MainWindow::transformationLabel() const
+ShowImage::transformationLabel() const noexcept
 {
     if (m_smoothScale)
     {
@@ -866,7 +866,7 @@ MainWindow::transformationLabel() const
 // ------------------------------------------------------------------------
 
 Qt::TransformationMode
-MainWindow::transformationMode() const
+ShowImage::transformationMode() const noexcept
 {
     if (m_smoothScale)
     {
@@ -881,7 +881,7 @@ MainWindow::transformationMode() const
 // ------------------------------------------------------------------------
 
 int
-MainWindow::zoomedHeight() const
+ShowImage::zoomedHeight() const
 {
     auto zoom = (m_zoom == 0) ? 1 : m_zoom;
 
@@ -891,7 +891,7 @@ MainWindow::zoomedHeight() const
 // ------------------------------------------------------------------------
 
 int
-MainWindow::zoomedWidth() const
+ShowImage::zoomedWidth() const
 {
     auto zoom = (m_zoom == 0) ? 1 : m_zoom;
 

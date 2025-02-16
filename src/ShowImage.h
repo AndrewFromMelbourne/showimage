@@ -33,7 +33,9 @@
 
 // ------------------------------------------------------------------------
 
-class MainWindow : public QMainWindow
+class ShowImage
+:
+    public QMainWindow
 {
     Q_OBJECT
 
@@ -42,8 +44,8 @@ public:
     static const int DEFAULT_WIDTH{640};
     static const int DEFAULT_HEIGHT{480};
 
-    MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
+    ShowImage(QWidget* parent = nullptr);
+    ~ShowImage();
 
     void changeEvent(QEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
@@ -54,30 +56,30 @@ public:
 
 private:
 
-    bool haveImages() const { return m_current != INVALID_INDEX; }
-    bool viewingImage() const { return not m_isBlank and not m_isSplash; }
-    bool originalSize() const { return m_percent == 100; }
+    [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
+    [[nodiscard]] bool viewingImage() const noexcept { return not m_isBlank and not m_isSplash; }
+    [[nodiscard]] bool originalSize() const noexcept { return m_percent == 100; }
 
     void annotate(QPainter& painter);
-    QString annotation() const;
-    const char* colourLabel() const;
-    const char* fitToScreenLabel() const;
+    [[nodiscard]] QString annotation() const;
+    [[nodiscard]] const char* colourLabel() const noexcept;
+    [[nodiscard]] const char* fitToScreenLabel() const noexcept;
     void handleGeneralKeys(int key);
     void handleImageViewingKeys(int key);
     void imageNext();
     void imagePrevious();
     void openDirectory();
     void openImage();
-    bool oversize() const;
+    bool oversize() const noexcept;
     void paint(QPainter& painter);
     void pan(int x, int y);
-    QPoint placeImage(const QImage& image) const;
+    [[nodiscard]] QPoint placeImage(const QImage& image) const noexcept;
     void processImage();
     void readDirectory();
-    const char* transformationLabel() const;
-    Qt::TransformationMode transformationMode() const;
-    int zoomedHeight() const;
-    int zoomedWidth() const;
+    [[nodiscard]] const char* transformationLabel() const noexcept;
+    [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
+    [[nodiscard]] int zoomedHeight() const;
+    [[nodiscard]] int zoomedWidth() const;
 
     static const int INVALID_INDEX{-1};
     static const int MAX_ZOOM{5};
