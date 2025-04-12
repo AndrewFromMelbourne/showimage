@@ -64,8 +64,8 @@ private:
     [[nodiscard]] QString annotation() const;
     [[nodiscard]] const char* colourLabel() const noexcept;
     [[nodiscard]] const char* fitToScreenLabel() const noexcept;
-    void handleGeneralKeys(int key);
-    void handleImageViewingKeys(int key);
+    void handleGeneralKeys(int key, bool isShift);
+    void handleImageViewingKeys(int key, bool isShift);
     void imageNext();
     void imagePrevious();
     void openDirectory();
@@ -95,6 +95,8 @@ private:
     int m_enlighten;
     QFileInfoList m_files;
     bool m_fitToScreen;
+    int m_frame;
+    int m_frameCount;
     bool m_greyscale;
     QImage m_image;
     QImage m_imageProcessed;

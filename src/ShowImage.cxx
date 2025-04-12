@@ -214,6 +214,8 @@ ShowImage::ShowImage(QWidget* parent)
     m_enlighten{0},
     m_files{},
     m_fitToScreen{false},
+    m_frame{0},
+    m_frameCount{0},
     m_greyscale{false},
     m_image{
         splash,
@@ -262,12 +264,13 @@ void
 ShowImage::keyPressEvent(QKeyEvent* event)
 {
     const auto key{event->key()};
+    const bool isShift{(event->modifiers() & Qt::ShiftModifier) != 0};
 
-    handleGeneralKeys(key);
+    handleGeneralKeys(key, isShift);
 
     if (viewingImage())
     {
-        handleImageViewingKeys(key);
+        handleImageViewingKeys(key, isShift);
     }
 }
 
@@ -376,6 +379,12 @@ ShowImage::annotation() const
     text += fitToScreenLabel();
     text += QString(" [ enlighten %1% ]").arg(QString::number(m_enlighten * 10));
 
+    if (m_frameCount > 1)
+    {
+        text += QString(" [ frame %1/%2 ]").arg(QString::number(m_frame + 1),
+                                                QString::number(m_frameCount));
+    }
+
     return text;
 }
 
@@ -412,7 +421,7 @@ ShowImage::fitToScreenLabel() const noexcept
 // ------------------------------------------------------------------------
 
 void
-ShowImage::handleGeneralKeys(int key)
+ShowImage::handleGeneralKeys(int key, bool isShift)
 {
     switch (key)
     {
@@ -451,7 +460,7 @@ ShowImage::handleGeneralKeys(int key)
 // ------------------------------------------------------------------------
 
 void
-ShowImage::handleImageViewingKeys(int key)
+ShowImage::handleImageViewingKeys(int key, bool isShift)
 {
     switch (key)
     {
@@ -518,13 +527,27 @@ ShowImage::handleImageViewingKeys(int key)
 
         case Qt::Key_E:
 
-            if (m_enlighten < 10)
+            if (isShift)
             {
-                ++m_enlighten;
+                if (m_enlighten > 0)
+                {
+                    --m_enlighten;
+                }
+                else
+                {
+                    m_enlighten = 10;
+                }
             }
             else
             {
-                m_enlighten = 0;
+                if (m_enlighten < 10)
+                {
+                    ++m_enlighten;
+                }
+                else
+                {
+                    m_enlighten = 0;
+                }
             }
             processImage();
             repaint();
@@ -594,6 +617,40 @@ ShowImage::handleImageViewingKeys(int key)
 
             break;
 
+        case Qt::Key_Comma:
+        case Qt::Key_Less:
+
+            if (m_frameCount > 1)
+            {
+                --m_frame;
+
+                if (m_frame < 0)
+                {
+                    m_frame = m_frameCount - 1;
+                }
+
+                openImage();
+            }
+
+            break;
+
+        case Qt::Key_Period:
+        case Qt::Key_Greater:
+
+            if (m_frameCount > 1)
+            {
+                ++m_frame;
+
+                if (m_frame >= m_frameCount)
+                {
+                    m_frame = 0;
+                }
+
+                openImage();
+            }
+
+            break;
+
         case Qt::Key_F11:
 
             if (windowState() == Qt::WindowFullScreen)
@@ -627,6 +684,8 @@ ShowImage::imageNext()
             m_current = 0;
         }
 
+        m_frame = 0;
+
         openImage();
     }
 }
@@ -645,6 +704,8 @@ ShowImage::imagePrevious()
             m_current = m_files.size() - 1;
         }
 
+        m_frame = 0;
+
         openImage();
     }
 }
@@ -655,6 +716,31 @@ void
 ShowImage::openDirectory()
 {
     m_directory = QFileDialog::getExistingDirectory(this, "Image folder");
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::openImage()
+{
+    QImageReader reader{m_files[m_current].filePath()};
+
+    m_frameCount = reader.imageCount();
+
+    for (int i = 0 ; i < m_frame ; ++i)
+    {
+        reader.read();
+    }
+
+    m_image = reader.read();
+
+    m_xOffset = 0;
+    m_yOffset = 0;
+
+    m_enlighten = 0;
+
+    processImage();
+    repaint();
 }
 
 // ------------------------------------------------------------------------
@@ -675,29 +761,11 @@ ShowImage::oversize() const noexcept
 // ------------------------------------------------------------------------
 
 void
-ShowImage::openImage()
-{
-    QImageReader reader{m_files[m_current].filePath()};
-    m_image = reader.read();
-    m_isSplash = false;
-
-    m_xOffset = 0;
-    m_yOffset = 0;
-
-    m_enlighten = 0;
-
-    processImage();
-    repaint();
-}
-
-// ------------------------------------------------------------------------
-
-void
 ShowImage::paint(QPainter& painter)
 {
     if (m_isSplash)
     {
-        auto point = placeImage(m_image);
+        const auto point = placeImage(m_image);
         painter.drawImage(point, m_image);
         return;
     }
@@ -713,7 +781,7 @@ ShowImage::paint(QPainter& painter)
         m_yOffset = 0;
     }
 
-    auto point = placeImage(m_imageProcessed);
+    const auto point = placeImage(m_imageProcessed);
     painter.drawImage(point, m_imageProcessed);
 
     annotate(painter);
@@ -817,6 +885,7 @@ ShowImage::readDirectory()
             });
 
         m_current = 0;
+        m_isSplash = false;
         openImage();
 
         setMinimumSize(0, 0);

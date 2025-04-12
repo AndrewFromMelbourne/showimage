@@ -58,6 +58,8 @@ function init()
 
     keyboardTextKey('canvas_esc', "Esc", 0);
     keyboardTextKey('canvas_f11', "F11", 0);
+    keyboardKeyTwoGlyph('canvas_less', "<", ",", letterBump);
+    keyboardKeyTwoGlyph('canvas_greater', ">", ".", letterBump);
 
     keyboardSpacebarGlyph('canvas_space');
 }
@@ -90,6 +92,27 @@ function keyboardKeyGlyph(id, glyph, nudgeDown)
     context.textBaseline = "middle";
     context.fillStyle = "white";
     context.fillText(glyph, 20, 20 + nudgeDown);
+
+    context.restore();
+}
+
+//------------------------------------------------------------------------
+
+function keyboardKeyTwoGlyph(id, glyph1, glyph2, nudgeDown)
+{
+    var canvas = document.getElementById(id);
+    var context = canvas.getContext('2d');
+
+    context.save();
+
+    keyboardKey(context);
+
+    context.font = "13pt Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "white";
+    context.fillText(glyph1, 20, 13 + nudgeDown);
+    context.fillText(glyph2, 20, 22 + nudgeDown);
 
     context.restore();
 }
@@ -184,6 +207,8 @@ function keyboardTextKey(id, text, nudgeDown)
     <canvas id="canvas_esc" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_f11" width="40" height="40">No canvas support! </canvas>
     <canvas id="canvas_space" width="160" height="40">No canvas support! </canvas>
+    <canvas id="canvas_less" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_greater" width="40" height="40">No canvas support! </canvas>
 </div>
 
 </body>
