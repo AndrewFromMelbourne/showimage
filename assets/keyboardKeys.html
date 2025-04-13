@@ -69,7 +69,7 @@ function init()
 function keyboardKey(context)
 {
     context.lineWidth = 2.0;
-    context.roundedRect(3, 3, 34, 34, 8);
+    context.roundedRect(1, 1, 34, 34, 8);
     context.fillStyle = "black";
     context.fill();
     context.strokeStyle = "white";
@@ -91,7 +91,7 @@ function keyboardKeyGlyph(id, glyph, nudgeDown)
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = "white";
-    context.fillText(glyph, 20, 20 + nudgeDown);
+    context.fillText(glyph, 18, 18 + nudgeDown);
 
     context.restore();
 }
@@ -111,8 +111,8 @@ function keyboardKeyTwoGlyph(id, glyph1, glyph2, nudgeDown)
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = "white";
-    context.fillText(glyph1, 20, 13 + nudgeDown);
-    context.fillText(glyph2, 20, 22 + nudgeDown);
+    context.fillText(glyph1, 18, 11 + nudgeDown);
+    context.fillText(glyph2, 18, 20 + nudgeDown);
 
     context.restore();
 }
@@ -127,7 +127,7 @@ function keyboardSpacebarGlyph(id)
     context.save();
 
     context.lineWidth = 2.0;
-    context.roundedRect(3, 3, 151, 34, 8);
+    context.roundedRect(1, 1, 151, 34, 8);
     context.fillStyle = "black";
     context.fill();
     context.strokeStyle = "white";
@@ -137,7 +137,7 @@ function keyboardSpacebarGlyph(id)
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = "white";
-    context.fillText("Space", 80, 20);
+    context.fillText("Space", 78, 18);
 
     context.restore();
 }
@@ -158,7 +158,7 @@ function keyboardTextKey(id, text, nudgeDown)
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = "white";
-    context.fillText(text, 20, 20);
+    context.fillText(text, 18, 18);
 
     context.restore();
 }
@@ -188,27 +188,27 @@ function keyboardTextKey(id, text, nudgeDown)
 <body onload="init();">
 
 <div id="wrapper">
-    <canvas id="canvas_a" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_c" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_d" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_e" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_f" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_g" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_o" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_r" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_s" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_w" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_x" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_z" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_left" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_right" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_up" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_down" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_esc" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_f11" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_space" width="160" height="40">No canvas support! </canvas>
-    <canvas id="canvas_less" width="40" height="40">No canvas support! </canvas>
-    <canvas id="canvas_greater" width="40" height="40">No canvas support! </canvas>
+    <canvas id="canvas_a" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_c" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_d" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_e" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_f" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_g" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_o" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_r" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_s" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_w" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_x" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_z" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_left" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_right" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_up" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_down" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_esc" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_f11" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_space" width="153" height="36">No canvas support! </canvas>
+    <canvas id="canvas_less" width="36" height="36">No canvas support! </canvas>
+    <canvas id="canvas_greater" width="36" height="36">No canvas support! </canvas>
 </div>
 
 </body>
