@@ -26,10 +26,8 @@ def main():
     image_grey = image.convert('L')
     numpydata = asarray(image_grey)
 
-    name_stem = Path(args.name).stem
-    name = f"image{name_stem}"
     length = image.width * image.height
-    print(f"const uint8_t {name}[{length}] = ")
+    print(f"uchar splash[{length}] = ")
     print("{")
 
     codeWidth = 24
@@ -37,13 +35,15 @@ def main():
     index = 0
     for column in numpydata:
         for pixel in column:
+            if ((index % codeWidth) == 0):
+                print("    ", end='')
+
             print('0x{:02x}, '.format(pixel), end='')
 
             index += 1
 
             if ((index % codeWidth) == 0):
                 print("")
-                print("    ", end='')
 
     print("};")
 

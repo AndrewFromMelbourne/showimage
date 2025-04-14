@@ -56,28 +56,50 @@ public:
 
 private:
 
+    [[nodiscard]] bool fitToScreen() const noexcept { return m_fitToScreen; }
+    [[nodiscard]] bool haveAnnotation() const noexcept { return m_annotate > FONT_OFF; }
+    [[nodiscard]] bool haveBlankScreen() const noexcept { return m_isBlank; }
+    [[nodiscard]] bool haveFrames() const noexcept { return m_frameCount > 1; }
     [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
-    [[nodiscard]] bool viewingImage() const noexcept { return not m_isBlank and not m_isSplash; }
+    [[nodiscard]] bool notScaled() const noexcept { return scaleOversized() and not oversize() and not m_fitToScreen; }
     [[nodiscard]] bool originalSize() const noexcept { return m_percent == 100; }
+    [[nodiscard]] bool scaleActualSize() const noexcept { return m_zoom == 1; }
+    [[nodiscard]] bool scaleOversized() const noexcept { return m_zoom == SCALE_OVERSIZED; }
+    [[nodiscard]] bool scaleZoomed() const noexcept { return m_zoom > 1; }
+    [[nodiscard]] bool viewingImage() const noexcept { return not m_isBlank and not m_isSplash; }
 
     void annotate(QPainter& painter);
     [[nodiscard]] QString annotation() const;
+    void center();
     [[nodiscard]] const char* colourLabel() const noexcept;
+    void enlighten(bool decrease);
     [[nodiscard]] const char* fitToScreenLabel() const noexcept;
+    void frameNext();
+    void framePrevious();
     void handleGeneralKeys(int key, bool isShift);
     void handleImageViewingKeys(int key, bool isShift);
     void imageNext();
     void imagePrevious();
     void openDirectory();
+    void openFrame();
     void openImage();
-    bool oversize() const noexcept;
+    [[nodiscard]] bool oversize() const noexcept;
     void paint(QPainter& painter);
     void pan(int x, int y);
     [[nodiscard]] QPoint placeImage(const QImage& image) const noexcept;
     void processImage();
+    void processImageAndRepaint();
     void readDirectory();
+    void toggleAnnotation();
+    void toggleBlankScreen();
+    void toggleFitToScreen();
+    void toggleFullScreen();
+    void toggleGreyScale();
+    void toggleSmoothScale();
     [[nodiscard]] const char* transformationLabel() const noexcept;
     [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
+    void zoomIn();
+    void zoomOut();
     [[nodiscard]] int zoomedHeight() const;
     [[nodiscard]] int zoomedWidth() const;
 
