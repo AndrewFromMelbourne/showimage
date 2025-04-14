@@ -455,7 +455,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_F11:
 
-            toggleFitToScreen();
+            toggleFullScreen();
             break;
 
         default:
