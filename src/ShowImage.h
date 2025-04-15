@@ -111,6 +111,9 @@ private:
     static const int FONT_REGULAR{12};
     static const int FONT_LARGE{24};
 
+    static const int ENLIGHTEN_MAX{10};
+    static const int PAN_STEP{10};
+
     int m_annotate;
     int m_current;
     QString m_directory;

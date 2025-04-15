@@ -147,16 +147,16 @@ ShowImage::resizeEvent(QResizeEvent *event)
 void
 ShowImage::wheelEvent(QWheelEvent* event)
 {
-     auto delta = event->angleDelta();
+    const auto delta = event->angleDelta();
 
-     if (delta.y() > 0)
-     {
+    if (delta.y() > 0)
+    {
         imageNext();
-     }
-     else if (delta.y() < 0)
-     {
+    }
+    else if (delta.y() < 0)
+    {
         imagePrevious();
-     }
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -194,8 +194,8 @@ ShowImage::annotate(QPainter& painter)
 QString
 ShowImage::annotation() const
 {
-    auto name = m_files[m_current].absoluteFilePath();
-    auto nameLength = name.length() - m_directory.length() - 1;
+    const auto name = m_files[m_current].absoluteFilePath();
+    const auto nameLength = name.length() - m_directory.length() - 1;
     auto text = QString("%1").arg(name.right(nameLength));
 
     text += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
@@ -262,12 +262,12 @@ ShowImage::enlighten(bool decrease)
         }
         else
         {
-            m_enlighten = 10;
+            m_enlighten = ENLIGHTEN_MAX;
         }
     }
     else
     {
-        if (m_enlighten < 10)
+        if (m_enlighten < ENLIGHTEN_MAX)
         {
             ++m_enlighten;
         }
@@ -393,7 +393,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_A:
 
-            pan(10, 0);
+            pan(PAN_STEP, 0);
             break;
 
         case Qt::Key_C:
@@ -403,7 +403,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_D:
 
-            pan(-10, 0);
+            pan(-PAN_STEP, 0);
             break;
 
         case Qt::Key_E:
@@ -423,12 +423,12 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_S:
 
-            pan(0, -10);
+            pan(0, -PAN_STEP);
             break;
 
         case Qt::Key_W:
 
-            pan(0, 10);
+            pan(0, PAN_STEP);
             break;
 
         case Qt::Key_X:
@@ -628,7 +628,8 @@ ShowImage::processImage()
 
     if (m_enlighten > 0)
     {
-        m_imageProcessed = ::enlighten(m_imageProcessed, m_enlighten / 10.0);
+        m_imageProcessed = ::enlighten(m_imageProcessed,
+                                       m_enlighten / static_cast<double>(ENLIGHTEN_MAX));
     }
 
     if (notScaled() or scaleActualSize())
@@ -874,7 +875,7 @@ ShowImage::zoomOut()
 int
 ShowImage::zoomedHeight() const
 {
-    auto zoom = (m_zoom == 0) ? 1 : m_zoom;
+    const auto zoom = (m_zoom == 0) ? 1 : m_zoom;
 
     return m_image.height() * zoom;
 }
@@ -884,7 +885,7 @@ ShowImage::zoomedHeight() const
 int
 ShowImage::zoomedWidth() const
 {
-    auto zoom = (m_zoom == 0) ? 1 : m_zoom;
+    const auto zoom = (m_zoom == 0) ? 1 : m_zoom;
 
     return m_image.width() * zoom;
 }
