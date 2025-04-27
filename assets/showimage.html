@@ -75,54 +75,58 @@ function keys(context, y)
     var x3 = 165;
     var x4 = 204;
 
+    var size = 36;
+    var padding = 3;
+    var step = size + padding;
+
     context.save();
 
     keyboardKeyGlyph(context, x1, y, "O", letterBump);
     keyboardKeyGlyph(context, x2, y, "R", letterBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyGlyph(context, x1, y, "←", horizontalArrowBump);
     keyboardKeyGlyph(context, x2, y, "→", horizontalArrowBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyGlyph(context, x1, y, "↑", verticalArrowBump);
     keyboardKeyGlyph(context, x2, y, "↓", verticalArrowBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyGlyph(context, x1, y, "W", letterBump);
     keyboardKeyGlyph(context, x2, y, "A", letterBump);
     keyboardKeyGlyph(context, x3, y, "S", letterBump);
     keyboardKeyGlyph(context, x4, y, "D", letterBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyGlyph(context, x1, y, "C", letterBump);
     keyboardKeyGlyph(context, x2, y, "E", letterBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyGlyph(context, x1, y, "F", letterBump);
     keyboardKeyGlyph(context, x2, y, "G", letterBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyGlyph(context, x1, y, "X", letterBump);
     keyboardKeyGlyph(context, x2, y, "Z", letterBump);
 
-    y += 39;
+    y += step;
 
     keyboardKeyTwoGlyph(context, x1, y, "<", ",", letterBump);
     keyboardKeyTwoGlyph(context, x2, y, ">", ".", letterBump);
 
-    y += 39;
+    y += step;
 
     keyboardTextKey(context, x1, 386, "F11", 0);
     keyboardTextKey(context, x2, 386, "Esc", 0);
 
-    y += 39;
+    y += step;
 
     keyboardSpacebarGlyph(context, x1, 425);
 
@@ -156,10 +160,14 @@ function descriptions(context, y)
     var x = 262;
     y += 18;
 
+    var size = 36;
+    var padding = 3;
+    var step = size + padding;
+
     for (let i = 0; i < descriptions.length; i++)
     {
         context.fillText(descriptions[i], x, y);
-        y += 39;
+        y += step;
     }
 
     context.restore();
@@ -256,7 +264,7 @@ function keyboardTextKey(context, x, y, text, nudgeDown)
 </script>
 <style>
 
-    #wrapper 
+    #wrapper
     {
         width: 640px;
         height: 480px;
