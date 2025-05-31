@@ -31,6 +31,8 @@
 #include <QMainWindow>
 #include <QPainter>
 
+#include <vector>
+
 // ------------------------------------------------------------------------
 
 class ShowImage
@@ -104,21 +106,33 @@ private:
     [[nodiscard]] int zoomedWidth() const;
 
     static const int INVALID_INDEX{-1};
-    static const int MAX_ZOOM{5};
-    static const int SCALE_OVERSIZED{0};
 
-    static const int FONT_OFF{0};
-    static const int FONT_REGULAR{12};
-    static const int FONT_LARGE{24};
+    enum Zoom
+    {
+        SCALE_OVERSIZED = 0,
+        SCALE_MAXIMUM = 5
+    };
 
-    static const int ENLIGHTEN_MAX{10};
+    enum AnnotationFont
+    {
+        FONT_OFF = 0,
+        FONT_REGULAR = 12,
+        FONT_LARGE = 24
+    };
+
+    enum ElightenLimits
+    {
+        ENLIGHTEN_MINIMUM = 0,
+        ENLIGHTEN_MAXIMUM = 10
+    };
+
     static const int PAN_STEP{10};
 
-    int m_annotate;
+    AnnotationFont m_annotate;
     int m_current;
     QString m_directory;
     int m_enlighten;
-    QFileInfoList m_files;
+    std::vector<QFileInfo> m_files;
     bool m_fitToScreen;
     int m_frame;
     int m_frameCount;

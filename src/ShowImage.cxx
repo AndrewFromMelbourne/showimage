@@ -68,6 +68,7 @@ ShowImage::ShowImage(QWidget* parent)
     m_yOffset{0},
     m_zoom{0}
 {
+    QImageReader::setAllocationLimit(0);
 }
 
 // ------------------------------------------------------------------------
@@ -256,24 +257,16 @@ ShowImage::enlighten(bool decrease)
 {
     if (decrease)
     {
-        if (m_enlighten > 0)
+        if (m_enlighten > ENLIGHTEN_MINIMUM)
         {
             --m_enlighten;
-        }
-        else
-        {
-            m_enlighten = ENLIGHTEN_MAX;
         }
     }
     else
     {
-        if (m_enlighten < ENLIGHTEN_MAX)
+        if (m_enlighten < ENLIGHTEN_MAXIMUM)
         {
             ++m_enlighten;
-        }
-        else
-        {
-            m_enlighten = 0;
         }
     }
 
@@ -586,8 +579,11 @@ ShowImage::paint(QPainter& painter)
         m_yOffset = 0;
     }
 
-    const auto point = placeImage(m_imageProcessed);
-    painter.drawImage(point, m_imageProcessed);
+    if ((m_image.width() > 0) and (m_image.height() > 0))
+    {
+        const auto point = placeImage(m_imageProcessed);
+        painter.drawImage(point, m_imageProcessed);
+    }
 
     annotate(painter);
 }
@@ -622,6 +618,11 @@ ShowImage::placeImage(const QImage& image) const noexcept
 void
 ShowImage::processImage()
 {
+    if ((m_image.width() == 0) or (m_image.height() == 0))
+    {
+        return;
+    }
+
     m_imageProcessed = (m_greyscale)
                      ? m_image.convertToFormat(QImage::Format_Grayscale8)
                      : m_image;
@@ -629,7 +630,7 @@ ShowImage::processImage()
     if (m_enlighten > 0)
     {
         m_imageProcessed = ::enlighten(m_imageProcessed,
-                                       m_enlighten / static_cast<double>(ENLIGHTEN_MAX));
+                                       m_enlighten / static_cast<double>(ENLIGHTEN_MAXIMUM));
     }
 
     if (notScaled() or scaleActualSize())
@@ -653,7 +654,11 @@ ShowImage::processImage()
                                                 Qt::KeepAspectRatio,
                                                 transformationMode());
 
-    auto percent = (100.0 * m_imageProcessed.width()) / m_image.width();
+    double percent = 0.0;
+    if (m_image.width() > 0)
+    {
+        percent = (100.0 * m_imageProcessed.width()) / m_image.width();
+    }
     m_percent = static_cast<int>(0.5 + percent);
 }
 
@@ -681,7 +686,7 @@ ShowImage::readDirectory()
                           QDirIterator::Subdirectories);
         while (iter.hasNext())
         {
-            m_files.append(iter.nextFileInfo());
+            m_files.push_back(iter.nextFileInfo());
         }
     }
 
@@ -843,7 +848,7 @@ ShowImage::transformationMode() const noexcept
 void
 ShowImage::zoomIn()
 {
-    if (m_zoom < MAX_ZOOM)
+    if (m_zoom < SCALE_MAXIMUM)
     {
         ++m_zoom;
         processImageAndRepaint();
