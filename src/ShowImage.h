@@ -61,7 +61,7 @@ private:
     [[nodiscard]] bool fitToScreen() const noexcept { return m_fitToScreen; }
     [[nodiscard]] bool haveAnnotation() const noexcept { return m_annotate > FONT_OFF; }
     [[nodiscard]] bool haveBlankScreen() const noexcept { return m_isBlank; }
-    [[nodiscard]] bool haveFrames() const noexcept { return m_frameCount > 1; }
+    [[nodiscard]] bool haveFrames() const noexcept { return m_frameIndexMax > 0; }
     [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
     [[nodiscard]] bool notScaled() const noexcept { return scaleOversized() and not oversize() and not m_fitToScreen; }
     [[nodiscard]] bool originalSize() const noexcept { return m_percent == 100; }
@@ -135,7 +135,7 @@ private:
     std::vector<QFileInfo> m_files;
     bool m_fitToScreen;
     int m_frame;
-    int m_frameCount;
+    int m_frameIndexMax;
     bool m_greyscale;
     QImage m_image;
     QImage m_imageProcessed;

@@ -51,7 +51,7 @@ ShowImage::ShowImage(QWidget* parent)
     m_files{},
     m_fitToScreen{false},
     m_frame{0},
-    m_frameCount{0},
+    m_frameIndexMax{0},
     m_greyscale{false},
     m_image{
         splash,
@@ -216,10 +216,10 @@ ShowImage::annotation() const
     text += fitToScreenLabel();
     text += QString(" [ enlighten %1% ]").arg(QString::number(m_enlighten * 10));
 
-    if (m_frameCount > 1)
+    if (m_frameIndexMax > 0)
     {
         text += QString(" [ frame %1/%2 ]").arg(QString::number(m_frame + 1),
-                                                QString::number(m_frameCount));
+                                                QString::number(m_frameIndexMax + 1));
     }
 
     return text;
@@ -295,13 +295,7 @@ ShowImage::frameNext()
 {
     if (haveFrames())
     {
-        ++m_frame;
-
-        if (m_frame == m_frameCount)
-        {
-            m_frame = 0;
-        }
-
+        m_frame = (m_frame == m_frameIndexMax) ? 0 : m_frame + 1;
         openFrame();
     }
 }
@@ -313,13 +307,7 @@ ShowImage::framePrevious()
 {
     if (haveFrames())
     {
-        --m_frame;
-
-        if (m_frame == -1)
-        {
-            m_frame = m_frameCount - 1;
-        }
-
+        m_frame = (m_frame == 0) ? m_frameIndexMax : m_frame - 1;
         openFrame();
     }
 }
@@ -464,15 +452,8 @@ ShowImage::imageNext()
 {
     if (haveImages())
     {
-        ++m_current;
-
-        if (m_current == m_files.size())
-        {
-            m_current = 0;
-        }
-
+        m_current = (m_current == m_files.size() - 1) ? 0 : m_current + 1;
         m_frame = 0;
-
         openImage();
     }
 }
@@ -484,15 +465,8 @@ ShowImage::imagePrevious()
 {
     if (haveImages())
     {
-        --m_current;
-
-        if (m_current == -1)
-        {
-            m_current = m_files.size() - 1;
-        }
-
+        m_current = (m_current == 0) ? m_files.size() - 1 : m_current - 1;
         m_frame = 0;
-
         openImage();
     }
 }
@@ -530,7 +504,7 @@ ShowImage::openImage()
 {
     QImageReader reader{m_files[m_current].filePath()};
 
-    m_frameCount = reader.imageCount();
+    m_frameIndexMax = reader.imageCount() - 1;
     m_image = reader.read();
 
     m_xOffset = 0;
