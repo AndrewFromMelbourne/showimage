@@ -118,11 +118,11 @@ ShowImage::mousePressEvent(QMouseEvent* event)
 {
     if (event->buttons() & Qt::LeftButton)
     {
-        imageNext();
+        imagePrevious();
     }
     if (event->buttons() & Qt::RightButton)
     {
-        imagePrevious();
+        imageNext();
     }
 }
 
