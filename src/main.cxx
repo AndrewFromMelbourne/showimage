@@ -42,12 +42,11 @@ int main(int argc, char* argv[])
 
     window.setAutoFillBackground(true);
     window.setPalette(palette);
+    window.show();
     window.resize(ShowImage::DEFAULT_WIDTH,
                   ShowImage::DEFAULT_HEIGHT);
     window.setFixedSize(ShowImage::DEFAULT_WIDTH,
                         ShowImage::DEFAULT_HEIGHT);
-
-    window.show();
 
     return application.exec();
 }
