@@ -163,6 +163,37 @@ ShowImage::wheelEvent(QWheelEvent* event)
 // ------------------------------------------------------------------------
 
 void
+ShowImage::setExtents()
+{
+
+    if (m_isSplash)
+    {
+        resize(ShowImage::DEFAULT_WIDTH, ShowImage::DEFAULT_HEIGHT);
+        setFixedSize(ShowImage::DEFAULT_WIDTH, ShowImage::DEFAULT_HEIGHT);
+    }
+    else
+    {
+        setMinimumSize(0, 0);
+        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    }
+
+#ifdef Q_OS_WIN32
+    const auto hint = Qt::MSWindowsFixedSizeDialogHint;
+    if (m_isSplash)
+    {
+        setWindowFlags(windowFlags() | hint);
+    }
+    else
+    {
+        setWindowFlags(windowFlags() & ~hint);
+    }
+    show();
+#endif
+}
+
+// ------------------------------------------------------------------------
+
+void
 ShowImage::annotate(QPainter& painter)
 {
     if (not m_annotate or not haveImages())
@@ -677,19 +708,15 @@ ShowImage::readDirectory()
         m_current = 0;
         m_isSplash = false;
         openImage();
-
-        setMinimumSize(0, 0);
-        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
     else
     {
         m_current = INVALID_INDEX;
+        m_isSplash = true;
         m_image = QImage(splash,
                          ShowImage::DEFAULT_WIDTH,
                          ShowImage::DEFAULT_HEIGHT,
                          QImage::Format_Grayscale8);
-
-        m_isSplash = true;
 
         m_xOffset = 0;
         m_yOffset = 0;
@@ -698,13 +725,9 @@ ShowImage::readDirectory()
         {
             showNormal();
         }
-        resize(ShowImage::DEFAULT_WIDTH,
-               ShowImage::DEFAULT_HEIGHT);
-        setFixedSize(ShowImage::DEFAULT_WIDTH,
-                     ShowImage::DEFAULT_HEIGHT);
-
-        repaint();
     }
+
+    setExtents();
 }
 
 // ------------------------------------------------------------------------

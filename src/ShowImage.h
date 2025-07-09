@@ -56,6 +56,8 @@ public:
     void resizeEvent(QResizeEvent *event) override;
     void wheelEvent(QWheelEvent* event) override;
 
+    void setExtents();
+
 private:
 
     [[nodiscard]] bool fitToScreen() const noexcept { return m_fitToScreen; }
