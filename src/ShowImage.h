@@ -94,6 +94,8 @@ private:
     void processImage();
     void processImageAndRepaint();
     void readDirectory();
+    void splashScreenSet();
+    void splashScreenUnset();
     void toggleAnnotation();
     void toggleBlankScreen();
     void toggleFitToScreen();

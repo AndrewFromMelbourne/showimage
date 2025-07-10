@@ -118,11 +118,11 @@ ShowImage::mousePressEvent(QMouseEvent* event)
 {
     if (event->buttons() & Qt::LeftButton)
     {
-        imagePrevious();
+        imageNext();
     }
     if (event->buttons() & Qt::RightButton)
     {
-        imageNext();
+        imagePrevious();
     }
 }
 
@@ -152,11 +152,11 @@ ShowImage::wheelEvent(QWheelEvent* event)
 
     if (delta.y() > 0)
     {
-        imageNext();
+        imagePrevious();
     }
     else if (delta.y() < 0)
     {
-        imagePrevious();
+        imageNext();
     }
 }
 
@@ -691,7 +691,12 @@ ShowImage::readDirectory()
                           QDirIterator::Subdirectories);
         while (iter.hasNext())
         {
-            m_files.push_back(iter.nextFileInfo());
+            auto fileInfo = iter.nextFileInfo();
+
+            if (fileInfo.isFile())
+            {
+                m_files.push_back(fileInfo);
+            }
         }
     }
 
@@ -706,17 +711,29 @@ ShowImage::readDirectory()
             });
 
         m_current = 0;
-        m_isSplash = false;
+        splashScreenUnset();
+
         openImage();
     }
     else
     {
         m_current = INVALID_INDEX;
+        splashScreenSet();
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::splashScreenSet()
+{
+    if (not m_isSplash)
+    {
         m_isSplash = true;
         m_image = QImage(splash,
-                         ShowImage::DEFAULT_WIDTH,
-                         ShowImage::DEFAULT_HEIGHT,
-                         QImage::Format_Grayscale8);
+                            ShowImage::DEFAULT_WIDTH,
+                            ShowImage::DEFAULT_HEIGHT,
+                            QImage::Format_Grayscale8);
 
         m_xOffset = 0;
         m_yOffset = 0;
@@ -725,9 +742,22 @@ ShowImage::readDirectory()
         {
             showNormal();
         }
-    }
 
-    setExtents();
+        setExtents();
+        repaint();
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::splashScreenUnset()
+{
+    if (m_isSplash)
+    {
+        m_isSplash = false;
+        setExtents();
+    }
 }
 
 // ------------------------------------------------------------------------
