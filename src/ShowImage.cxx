@@ -647,17 +647,17 @@ ShowImage::processImage()
     if (scaleZoomed())
     {
         m_imageProcessed = m_imageProcessed.scaled(m_imageProcessed.width() * m_zoom,
-                                                    m_imageProcessed.height() * m_zoom,
-                                                    Qt::KeepAspectRatio,
-                                                    transformationMode());
+                                                   m_imageProcessed.height() * m_zoom,
+                                                   Qt::KeepAspectRatio,
+                                                   transformationMode());
 
         m_percent = m_zoom * 100;
         return;
     }
 
     m_imageProcessed = m_imageProcessed.scaled(QSize(width(), height()),
-                                                Qt::KeepAspectRatio,
-                                                transformationMode());
+                                               Qt::KeepAspectRatio,
+                                               transformationMode());
 
     double percent = 0.0;
     if (m_image.width() > 0)
@@ -731,9 +731,9 @@ ShowImage::splashScreenSet()
     {
         m_isSplash = true;
         m_image = QImage(splash,
-                            ShowImage::DEFAULT_WIDTH,
-                            ShowImage::DEFAULT_HEIGHT,
-                            QImage::Format_Grayscale8);
+                         ShowImage::DEFAULT_WIDTH,
+                         ShowImage::DEFAULT_HEIGHT,
+                         QImage::Format_Grayscale8);
 
         m_xOffset = 0;
         m_yOffset = 0;
@@ -921,3 +921,4 @@ ShowImage::zoomedWidth() const
 
     return m_image.width() * zoom;
 }
+
