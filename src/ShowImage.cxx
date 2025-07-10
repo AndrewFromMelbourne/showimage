@@ -140,6 +140,11 @@ ShowImage::paintEvent(QPaintEvent*)
 void
 ShowImage::resizeEvent(QResizeEvent *event)
 {
+    if (m_isSplash)
+    {
+        setExtents();
+    }
+
     processImage();
 }
 
