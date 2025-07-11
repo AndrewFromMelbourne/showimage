@@ -154,12 +154,13 @@ void
 ShowImage::wheelEvent(QWheelEvent* event)
 {
     const auto delta = event->angleDelta();
+    const auto dy = event->isInverted() ? -delta.y() : delta.y();
 
-    if (delta.y() > 0)
+    if (dy > 0)
     {
         imagePrevious();
     }
-    else if (delta.y() < 0)
+    else if (dy < 0)
     {
         imageNext();
     }
@@ -273,7 +274,7 @@ ShowImage::center()
 
 // ------------------------------------------------------------------------
 
-const char*
+std::string_view
 ShowImage::colourLabel() const noexcept
 {
     if (m_greyscale)
@@ -311,7 +312,7 @@ ShowImage::enlighten(bool decrease)
 
 // ------------------------------------------------------------------------
 
-const char*
+std::string_view
 ShowImage::fitToScreenLabel() const noexcept
 {
     if (m_fitToScreen)
@@ -847,7 +848,7 @@ ShowImage::toggleSmoothScale()
 
 // ------------------------------------------------------------------------
 
-const char*
+std::string_view
 ShowImage::transformationLabel() const noexcept
 {
     if (m_smoothScale)
@@ -925,4 +926,3 @@ ShowImage::zoomedWidth() const
 
     return m_image.width() * zoom;
 }
-

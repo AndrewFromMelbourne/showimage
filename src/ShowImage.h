@@ -31,6 +31,7 @@
 #include <QMainWindow>
 #include <QPainter>
 
+#include <string_view>
 #include <vector>
 
 // ------------------------------------------------------------------------
@@ -75,9 +76,9 @@ private:
     void annotate(QPainter& painter);
     [[nodiscard]] QString annotation() const;
     void center();
-    [[nodiscard]] const char* colourLabel() const noexcept;
+    [[nodiscard]] std::string_view colourLabel() const noexcept;
     void enlighten(bool decrease);
-    [[nodiscard]] const char* fitToScreenLabel() const noexcept;
+    [[nodiscard]] std::string_view fitToScreenLabel() const noexcept;
     void frameNext();
     void framePrevious();
     void handleGeneralKeys(int key, bool isShift);
@@ -102,7 +103,7 @@ private:
     void toggleFullScreen();
     void toggleGreyScale();
     void toggleSmoothScale();
-    [[nodiscard]] const char* transformationLabel() const noexcept;
+    [[nodiscard]] std::string_view transformationLabel() const noexcept;
     [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
     void zoomIn();
     void zoomOut();
