@@ -52,7 +52,6 @@ diameter(const QImage& image)
                  (image.height() * image.height()));
 }
 
-
 // ------------------------------------------------------------------------
 
 QImage
