@@ -908,7 +908,6 @@ ShowImage::zoomOut()
 
 // ------------------------------------------------------------------------
 
-
 int
 ShowImage::zoomedHeight() const
 {
