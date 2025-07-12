@@ -274,7 +274,7 @@ ShowImage::center()
 
 // ------------------------------------------------------------------------
 
-std::string_view
+const char*
 ShowImage::colourLabel() const noexcept
 {
     if (m_greyscale)
@@ -312,7 +312,7 @@ ShowImage::enlighten(bool decrease)
 
 // ------------------------------------------------------------------------
 
-std::string_view
+const char*
 ShowImage::fitToScreenLabel() const noexcept
 {
     if (m_fitToScreen)
@@ -848,7 +848,7 @@ ShowImage::toggleSmoothScale()
 
 // ------------------------------------------------------------------------
 
-std::string_view
+const char*
 ShowImage::transformationLabel() const noexcept
 {
     if (m_smoothScale)
