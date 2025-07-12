@@ -75,9 +75,9 @@ private:
     void annotate(QPainter& painter);
     [[nodiscard]] QString annotation() const;
     void center();
-    [[nodiscard]] const char*colourLabel() const noexcept;
+    [[nodiscard]] const char* colourLabel() const noexcept;
     void enlighten(bool decrease);
-    [[nodiscard]] const char*fitToScreenLabel() const noexcept;
+    [[nodiscard]] const char* fitToScreenLabel() const noexcept;
     void frameNext();
     void framePrevious();
     void handleGeneralKeys(int key, bool isShift);
@@ -102,7 +102,7 @@ private:
     void toggleFullScreen();
     void toggleGreyScale();
     void toggleSmoothScale();
-    [[nodiscard]] const char*transformationLabel() const noexcept;
+    [[nodiscard]] const char* transformationLabel() const noexcept;
     [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
     void zoomIn();
     void zoomOut();
