@@ -15,5 +15,6 @@ add_executable(showimage ${CMAKE_CURRENT_SOURCE_DIR}/src/ShowImage.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/splash.cxx)
 
 target_link_libraries(showimage PUBLIC Qt6::Widgets)
+set_target_properties(showimage PROPERTIES WIN32_EXECUTABLE TRUE)
 
 install(TARGETS showimage DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/bin)
