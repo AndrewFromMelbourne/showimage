@@ -37,6 +37,7 @@
 #include <QKeyEvent>
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 //-------------------------------------------------------------------------
@@ -64,8 +65,7 @@ ShowImage::ShowImage(QWidget* parent)
     m_isSplash{true},
     m_percent{100},
     m_smoothScale{true},
-    m_xOffset{0},
-    m_yOffset{0},
+    m_offset{0, 0},
     m_zoom{0}
 {
     QImageReader::setAllocationLimit(0);
@@ -171,7 +171,6 @@ ShowImage::wheelEvent(QWheelEvent* event)
 void
 ShowImage::setExtents()
 {
-
     if (m_isSplash)
     {
         resize(ShowImage::DEFAULT_WIDTH, ShowImage::DEFAULT_HEIGHT);
@@ -265,31 +264,6 @@ ShowImage::annotation() const
 // ------------------------------------------------------------------------
 
 void
-ShowImage::center()
-{
-    m_xOffset = 0;
-    m_yOffset = 0;
-    repaint();
-}
-
-// ------------------------------------------------------------------------
-
-const char*
-ShowImage::colourLabel() const noexcept
-{
-    if (m_greyscale)
-    {
-        return " [ grey ]";
-    }
-    else
-    {
-        return " [ colour ]";
-    }
-}
-
-// ------------------------------------------------------------------------
-
-void
 ShowImage::enlighten(bool decrease)
 {
     if (decrease)
@@ -308,21 +282,6 @@ ShowImage::enlighten(bool decrease)
     }
 
     processImageAndRepaint();
-}
-
-// ------------------------------------------------------------------------
-
-const char*
-ShowImage::fitToScreenLabel() const noexcept
-{
-    if (m_fitToScreen)
-    {
-        return " [ FTS ]";
-    }
-    else
-    {
-        return " [ FOS ]";
-    }
 }
 
 // ------------------------------------------------------------------------
@@ -416,7 +375,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_C:
 
-            center();
+            centerAndRepaint();
             break;
 
         case Qt::Key_D:
@@ -544,9 +503,7 @@ ShowImage::openImage()
     m_frameIndexMax = reader.imageCount() - 1;
     m_image = reader.read();
 
-    m_xOffset = 0;
-    m_yOffset = 0;
-
+    center();
     m_enlighten = 0;
 
     processImageAndRepaint();
@@ -586,8 +543,7 @@ ShowImage::paint(QPainter& painter)
 
     if (not oversize())
     {
-        m_xOffset = 0;
-        m_yOffset = 0;
+        center();
     }
 
     if ((m_image.width() > 0) and (m_image.height() > 0))
@@ -606,9 +562,7 @@ ShowImage::pan(int x, int y)
 {
     if (oversize() and (m_zoom != SCALE_OVERSIZED))
     {
-        m_xOffset += (x * m_zoom);
-        m_yOffset += (y * m_zoom);
-
+        m_offset.add(x * m_zoom, y * m_zoom);
         repaint();
     }
 }
@@ -618,8 +572,8 @@ ShowImage::pan(int x, int y)
 QPoint
 ShowImage::placeImage(const QImage& image) const noexcept
 {
-    auto x = (width() / 2) - (image.width() / 2) + m_xOffset;
-    auto y = (height() / 2) - (image.height() / 2) + m_yOffset;
+    auto x = (width() / 2) - (image.width() / 2) + m_offset.x;
+    auto y = (height() / 2) - (image.height() / 2) + m_offset.y;
 
     return QPoint(x, y);
 }
@@ -668,18 +622,9 @@ ShowImage::processImage()
     double percent = 0.0;
     if (m_image.width() > 0)
     {
-        percent = (100.0 * m_imageProcessed.width()) / m_image.width();
+        percent = std::round((100.0 * m_imageProcessed.width()) / m_image.width());
     }
-    m_percent = static_cast<int>(0.5 + percent);
-}
-
-// ------------------------------------------------------------------------
-
-void
-ShowImage::processImageAndRepaint()
-{
-    processImage();
-    repaint();
+    m_percent = static_cast<int>(percent);
 }
 
 // ------------------------------------------------------------------------
@@ -741,8 +686,7 @@ ShowImage::splashScreenSet()
                          ShowImage::DEFAULT_HEIGHT,
                          QImage::Format_Grayscale8);
 
-        m_xOffset = 0;
-        m_yOffset = 0;
+        center();
 
         if (isFullScreen())
         {
@@ -848,21 +792,6 @@ ShowImage::toggleSmoothScale()
 
 // ------------------------------------------------------------------------
 
-const char*
-ShowImage::transformationLabel() const noexcept
-{
-    if (m_smoothScale)
-    {
-        return " [ smooth ]";
-    }
-    else
-    {
-        return " [ fast ]";
-    }
-}
-
-// ------------------------------------------------------------------------
-
 Qt::TransformationMode
 ShowImage::transformationMode() const noexcept
 {
@@ -899,30 +828,9 @@ ShowImage::zoomOut()
 
         if (m_zoom == 0)
         {
-            m_xOffset = 0;
-            m_yOffset = 0;
+            center();
         }
 
         processImageAndRepaint();
     }
-}
-
-// ------------------------------------------------------------------------
-
-int
-ShowImage::zoomedHeight() const
-{
-    const auto zoom = (m_zoom == 0) ? 1 : m_zoom;
-
-    return m_image.height() * zoom;
-}
-
-// ------------------------------------------------------------------------
-
-int
-ShowImage::zoomedWidth() const
-{
-    const auto zoom = (m_zoom == 0) ? 1 : m_zoom;
-
-    return m_image.width() * zoom;
 }

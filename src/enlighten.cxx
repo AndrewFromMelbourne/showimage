@@ -184,4 +184,3 @@ enlighten(
 
     return output;
 }
-

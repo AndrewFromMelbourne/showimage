@@ -47,7 +47,12 @@ public:
     static const int DEFAULT_HEIGHT{480};
 
     ShowImage(QWidget* parent = nullptr);
-    ~ShowImage();
+    virtual ~ShowImage();
+
+    ShowImage(const ShowImage&) = delete;
+    ShowImage(ShowImage &&) = delete;
+    ShowImage& operator=(const ShowImage&) = delete;
+    ShowImage&& operator=(ShowImage &&) = delete;
 
     void changeEvent(QEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
@@ -60,7 +65,27 @@ public:
 
 private:
 
+    struct Offset
+    {
+        Offset(int xx, int yy) noexcept
+        :
+            x(xx),
+            y(yy)
+        {}
+
+        void add(int dx, int dy) noexcept
+        {
+            x += dx;
+            y += dy;
+        }
+
+        int x;
+        int y;
+    };
+
+    [[nodiscard]] const char* colourLabel() const noexcept { return (m_greyscale) ? " [ grey ]" : " [ colour ]"; }
     [[nodiscard]] bool fitToScreen() const noexcept { return m_fitToScreen; }
+    [[nodiscard]] const char* fitToScreenLabel() const noexcept { return (m_fitToScreen) ? " [ FTS ]" : " [ FOS ]"; }
     [[nodiscard]] bool haveAnnotation() const noexcept { return m_annotate > FONT_OFF; }
     [[nodiscard]] bool haveBlankScreen() const noexcept { return m_isBlank; }
     [[nodiscard]] bool haveFrames() const noexcept { return m_frameIndexMax > 0; }
@@ -70,14 +95,40 @@ private:
     [[nodiscard]] bool scaleActualSize() const noexcept { return m_zoom == 1; }
     [[nodiscard]] bool scaleOversized() const noexcept { return m_zoom == SCALE_OVERSIZED; }
     [[nodiscard]] bool scaleZoomed() const noexcept { return m_zoom > 1; }
+    [[nodiscard]] const char* transformationLabel() const noexcept { return (m_smoothScale) ? " [ smooth ]" : " [ fast ]"; }
     [[nodiscard]] bool viewingImage() const noexcept { return not m_isBlank and not m_isSplash; }
+    [[nodiscard]] int zoomedHeight() const { return m_image.height() * zoomValue(); }
+    [[nodiscard]] int zoomedWidth() const { return m_image.width() * zoomValue(); }
+    [[nodiscard]] int zoomValue() const noexcept { return (m_zoom == 0) ? 1 : m_zoom; }
+
+    // --------------------------------------------------------------------
+
+    void center() noexcept
+    {
+        m_offset = Offset(0, 0);
+    }
+
+    // --------------------------------------------------------------------
+
+    void centerAndRepaint()
+    {
+        center();
+        repaint();
+    }
+
+    // --------------------------------------------------------------------
+
+    void processImageAndRepaint()
+    {
+        processImage();
+        repaint();
+    }
+
+    // --------------------------------------------------------------------
 
     void annotate(QPainter& painter);
     [[nodiscard]] QString annotation() const;
-    void center();
-    [[nodiscard]] const char* colourLabel() const noexcept;
     void enlighten(bool decrease);
-    [[nodiscard]] const char* fitToScreenLabel() const noexcept;
     void frameNext();
     void framePrevious();
     void handleGeneralKeys(int key, bool isShift);
@@ -92,7 +143,6 @@ private:
     void pan(int x, int y);
     [[nodiscard]] QPoint placeImage(const QImage& image) const noexcept;
     void processImage();
-    void processImageAndRepaint();
     void readDirectory();
     void splashScreenSet();
     void splashScreenUnset();
@@ -102,12 +152,9 @@ private:
     void toggleFullScreen();
     void toggleGreyScale();
     void toggleSmoothScale();
-    [[nodiscard]] const char* transformationLabel() const noexcept;
     [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
     void zoomIn();
     void zoomOut();
-    [[nodiscard]] int zoomedHeight() const;
-    [[nodiscard]] int zoomedWidth() const;
 
     static const int INVALID_INDEX{-1};
 
@@ -124,7 +171,7 @@ private:
         FONT_LARGE = 24
     };
 
-    enum ElightenLimits
+    enum EnlightenLimits
     {
         ENLIGHTEN_MINIMUM = 0,
         ENLIGHTEN_MAXIMUM = 10
@@ -147,7 +194,6 @@ private:
     bool m_isSplash;
     int m_percent;
     bool m_smoothScale;
-    int m_xOffset;
-    int m_yOffset;
+    Offset m_offset;
     int m_zoom;
 };
