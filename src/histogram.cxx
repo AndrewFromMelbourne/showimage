@@ -43,8 +43,8 @@ namespace
     static constexpr int HistogramAlpha{191};
     static constexpr int HistogramHeight{128};
     static constexpr int ColourValues{256};
-    static constexpr u_int8_t BackgroundBrightness{63};
-    static constexpr u_int8_t HistogramBrightness{255};
+    static constexpr int BackgroundBrightness{63};
+    static constexpr int HistogramBrightness{255};
 };
 
 // ========================================================================
