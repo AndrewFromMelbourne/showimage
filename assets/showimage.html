@@ -88,6 +88,8 @@ function keys(context, y)
 
     keyboardKeyGlyph(context, x1, y, "←", horizontalArrowBump);
     keyboardKeyGlyph(context, x2, y, "→", horizontalArrowBump);
+    keyboardShiftKeyGlyph(context, x3, y);
+
 
     y += step;
 
@@ -110,6 +112,7 @@ function keys(context, y)
 
     keyboardKeyGlyph(context, x1, y, "F", letterBump);
     keyboardKeyGlyph(context, x2, y, "G", letterBump);
+    keyboardKeyGlyph(context, x3, y, "H", letterBump);
 
     y += step;
 
@@ -139,11 +142,11 @@ function descriptions(context, y)
 {
     const descriptions = [
         "Open/Re-open directory",
-        "Previous/Next image",
+        "Previous/Next image/± 10 images",
         "Increase/Decrease zoom",
         "Pan images larger than window",
         "Center image/Enlighten",
-        "Toggle fit to screen/greyscale",
+        "Toggle fit to screen/greyscale/histogram",
         "Toggle smooth scaling/annotation",
         "Previous/Next frame",
         "Full screen/Quit",
@@ -216,6 +219,28 @@ function keyboardKeyTwoGlyph(context, x, y, glyph1, glyph2, nudgeDown)
     context.fillStyle = "white";
     context.fillText(glyph1, x + 18, y + 11 + nudgeDown);
     context.fillText(glyph2, x + 18, y + 20 + nudgeDown);
+
+    context.restore();
+}
+
+//------------------------------------------------------------------------
+
+function keyboardShiftKeyGlyph(context, x, y)
+{
+    context.save();
+
+    context.lineWidth = 2.0;
+    context.roundedRect(x + 1, y + 1, 73, 34, 8);
+    context.fillStyle = "black";
+    context.fill();
+    context.strokeStyle = "white";
+    context.stroke();
+
+    context.font = "12pt Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "white";
+    context.fillText("Shift", x + 36, y + 18);
 
     context.restore();
 }

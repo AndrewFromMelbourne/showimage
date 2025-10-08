@@ -11,6 +11,7 @@ find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 add_executable(showimage ${CMAKE_CURRENT_SOURCE_DIR}/src/ShowImage.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/enlighten.cxx
+                         ${CMAKE_CURRENT_SOURCE_DIR}/src/histogram.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/splash.cxx)
 

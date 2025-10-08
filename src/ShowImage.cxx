@@ -26,6 +26,7 @@
 //-------------------------------------------------------------------------
 
 #include "enlighten.h"
+#include "histogram.h"
 #include "ShowImage.h"
 #include "splash.h"
 
@@ -50,10 +51,12 @@ ShowImage::ShowImage(QWidget* parent)
     m_directory{},
     m_enlighten{0},
     m_files{},
-    m_fitToScreen{false},
+    m_fitToScreen{true},
     m_frame{0},
     m_frameIndexMax{0},
     m_greyscale{false},
+    m_histogram{HISTOGRAM_OFF},
+    m_histogramImage{},
     m_image{
         splash,
         ShowImage::DEFAULT_WIDTH,
@@ -350,12 +353,12 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
     {
         case Qt::Key_Left:
 
-            imagePrevious();
+            imagePrevious(isShift);
             break;
 
         case Qt::Key_Right:
 
-            imageNext();
+            imageNext(isShift);
             break;
 
         case Qt::Key_Up:
@@ -396,6 +399,11 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
         case Qt::Key_G:
 
             toggleGreyScale();
+            break;
+
+        case Qt::Key_H:
+
+            toggleHistogram();
             break;
 
         case Qt::Key_S:
@@ -457,11 +465,54 @@ ShowImage::imageNext()
 // ------------------------------------------------------------------------
 
 void
+ShowImage::imageNext(bool step)
+{
+    if (not step)
+    {
+        imageNext();
+    }
+    else if (haveImages())
+    {
+        m_current += 10;
+        if (m_current >= m_files.size())
+        {
+            m_current = 0;
+        }
+
+        m_frame = 0;
+        openImage();
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
 ShowImage::imagePrevious()
 {
     if (haveImages())
     {
         m_current = (m_current == 0) ? m_files.size() - 1 : m_current - 1;
+        m_frame = 0;
+        openImage();
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::imagePrevious(bool step)
+{
+    if (not step)
+    {
+        imagePrevious();
+    }
+    else if (haveImages())
+    {
+        m_current -= 10;
+        if (m_current < 0)
+        {
+            m_current = m_files.size() - 1;
+        }
         m_frame = 0;
         openImage();
     }
@@ -552,6 +603,13 @@ ShowImage::paint(QPainter& painter)
         painter.drawImage(point, m_imageProcessed);
     }
 
+    if ((m_histogram != HISTOGRAM_OFF) and (not m_histogramImage.isNull()))
+    {
+        const auto x = width() - m_histogramImage.width() - 2;
+        const auto y = height() - m_histogramImage.height() - 2;
+        painter.drawImage(QPoint(x, y), m_histogramImage);
+    }
+
     annotate(painter);
 }
 
@@ -602,6 +660,32 @@ ShowImage::processImage()
     {
         m_percent = 100;
         return;
+    }
+
+    switch (m_histogram)
+    {
+        case HISTOGRAM_RGB:
+
+            if (m_greyscale)
+            {
+                m_histogramImage = histogramIntensity(m_imageProcessed);
+            }
+            else
+            {
+                m_histogramImage = histogramRGB(m_imageProcessed);
+            }
+
+            break;
+
+        case HISTOGRAM_INTENSITY:
+
+            m_histogramImage = histogramIntensity(m_imageProcessed);
+            break;
+
+        case HISTOGRAM_OFF:
+
+            m_histogramImage = QImage{};
+            break;
     }
 
     if (scaleZoomed())
@@ -774,6 +858,32 @@ void
 ShowImage::toggleGreyScale()
 {
     m_greyscale = !m_greyscale;
+    processImageAndRepaint();
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::toggleHistogram()
+{
+    switch (m_histogram)
+    {
+    case HISTOGRAM_OFF:
+
+        m_histogram = HISTOGRAM_RGB;
+        break;
+
+    case HISTOGRAM_RGB:
+
+        m_histogram = HISTOGRAM_INTENSITY;
+        break;
+
+    case HISTOGRAM_INTENSITY:
+
+        m_histogram = HISTOGRAM_OFF;
+        break;
+    }
+
     processImageAndRepaint();
 }
 

@@ -134,7 +134,9 @@ private:
     void handleGeneralKeys(int key, bool isShift);
     void handleImageViewingKeys(int key, bool isShift);
     void imageNext();
+    void imageNext(bool step);
     void imagePrevious();
+    void imagePrevious(bool step);
     void openDirectory();
     void openFrame();
     void openImage();
@@ -151,12 +153,20 @@ private:
     void toggleFitToScreen();
     void toggleFullScreen();
     void toggleGreyScale();
+    void toggleHistogram();
     void toggleSmoothScale();
     [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
     void zoomIn();
     void zoomOut();
 
     static const int INVALID_INDEX{-1};
+
+    enum Histogram
+    {
+        HISTOGRAM_OFF = 0,
+        HISTOGRAM_RGB = 1,
+        HISTOGRAM_INTENSITY = 2
+    };
 
     enum Zoom
     {
@@ -188,6 +198,8 @@ private:
     int m_frame;
     int m_frameIndexMax;
     bool m_greyscale;
+    Histogram m_histogram;
+    QImage m_histogramImage;
     QImage m_image;
     QImage m_imageProcessed;
     bool m_isBlank;
