@@ -36,10 +36,12 @@
 #include <QFontMetrics>
 #include <QImageReader>
 #include <QKeyEvent>
+#include <QThread>
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <ranges>
 
 //-------------------------------------------------------------------------
 
@@ -213,9 +215,9 @@ ShowImage::annotate(QPainter& painter)
     static constexpr int padding{4};
     const QFont font("Mulish", m_annotate);
 
-    QFontMetrics metrics(font);
+    const QFontMetrics metrics(font);
     auto bound{metrics.boundingRect(text)};
-    QRect rect
+    const QRect rect
     {
         0,
         0,
@@ -269,11 +271,14 @@ ShowImage::annotation() const
 void
 ShowImage::enlighten(bool decrease)
 {
+    bool repaint = false;
+
     if (decrease)
     {
         if (m_enlighten > ENLIGHTEN_MINIMUM)
         {
             --m_enlighten;
+            repaint = true;
         }
     }
     else
@@ -281,10 +286,14 @@ ShowImage::enlighten(bool decrease)
         if (m_enlighten < ENLIGHTEN_MAXIMUM)
         {
             ++m_enlighten;
+            repaint = true;
         }
     }
 
-    processImageAndRepaint();
+    if (repaint)
+    {
+        processImageAndRepaint();
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -452,6 +461,21 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 // ------------------------------------------------------------------------
 
 void
+ShowImage::histogram(QPainter& painter)
+{
+    if ((m_histogram == HISTOGRAM_OFF) or m_histogramImage.isNull())
+    {
+        return;
+    }
+
+    const auto x = width() - m_histogramImage.width() - 2;
+    const auto y = height() - m_histogramImage.height() - 2;
+    painter.drawImage(QPoint(x, y), m_histogramImage);
+}
+
+// ------------------------------------------------------------------------
+
+void
 ShowImage::imageNext()
 {
     if (haveImages())
@@ -534,7 +558,7 @@ ShowImage::openFrame()
 {
     QImageReader reader{m_files[m_current].filePath()};
 
-    for (int i = 0 ; i < m_frame ; ++i)
+    for (auto i = 0 ; i < m_frame ; ++i)
     {
         reader.read();
     }
@@ -582,8 +606,7 @@ ShowImage::paint(QPainter& painter)
 {
     if (m_isSplash)
     {
-        const auto point = placeImage(m_image);
-        painter.drawImage(point, m_image);
+        painter.drawImage(placeImage(m_image), m_image);
         return;
     }
 
@@ -599,17 +622,10 @@ ShowImage::paint(QPainter& painter)
 
     if ((m_image.width() > 0) and (m_image.height() > 0))
     {
-        const auto point = placeImage(m_imageProcessed);
-        painter.drawImage(point, m_imageProcessed);
+        painter.drawImage(placeImage(m_imageProcessed), m_imageProcessed);
     }
 
-    if ((m_histogram != HISTOGRAM_OFF) and (not m_histogramImage.isNull()))
-    {
-        const auto x = width() - m_histogramImage.width() - 2;
-        const auto y = height() - m_histogramImage.height() - 2;
-        painter.drawImage(QPoint(x, y), m_histogramImage);
-    }
-
+    histogram(painter);
     annotate(painter);
 }
 
@@ -630,8 +646,8 @@ ShowImage::pan(int x, int y)
 QPoint
 ShowImage::placeImage(const QImage& image) const noexcept
 {
-    auto x = (width() / 2) - (image.width() / 2) + m_offset.x;
-    auto y = (height() / 2) - (image.height() / 2) + m_offset.y;
+    const auto x = (width() / 2) - (image.width() / 2) + m_offset.x;
+    const auto y = (height() / 2) - (image.height() / 2) + m_offset.y;
 
     return QPoint(x, y);
 }
@@ -646,46 +662,75 @@ ShowImage::processImage()
         return;
     }
 
+    processImageGreyscale();
+    processImageEnlighten();
+    processImageHistogram();
+    processImageResize();
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::processImageEnlighten()
+{
+    if (m_enlighten > 0)
+    {
+        const auto enlighten = m_enlighten / static_cast<double>(ENLIGHTEN_MAXIMUM);
+        m_imageProcessed = ::enlighten(m_imageProcessed, enlighten);
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::processImageGreyscale()
+{
     m_imageProcessed = (m_greyscale)
                      ? m_image.convertToFormat(QImage::Format_Grayscale8)
                      : m_image;
+}
 
-    if (m_enlighten > 0)
-    {
-        m_imageProcessed = ::enlighten(m_imageProcessed,
-                                       m_enlighten / static_cast<double>(ENLIGHTEN_MAXIMUM));
-    }
+// ------------------------------------------------------------------------
 
-    if (notScaled() or scaleActualSize())
-    {
-        m_percent = 100;
-        return;
-    }
-
+void
+ShowImage::processImageHistogram()
+{
     switch (m_histogram)
     {
         case HISTOGRAM_RGB:
 
             if (m_greyscale)
             {
-                m_histogramImage = histogramIntensity(m_imageProcessed);
+                m_histogramImage = ::histogramIntensity(m_imageProcessed);
             }
             else
             {
-                m_histogramImage = histogramRGB(m_imageProcessed);
+                m_histogramImage = ::histogramRGB(m_imageProcessed);
             }
 
             break;
 
         case HISTOGRAM_INTENSITY:
 
-            m_histogramImage = histogramIntensity(m_imageProcessed);
+            m_histogramImage = ::histogramIntensity(m_imageProcessed);
             break;
 
         case HISTOGRAM_OFF:
 
             m_histogramImage = QImage{};
             break;
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::processImageResize()
+{
+    if (notScaled() or scaleActualSize())
+    {
+        m_percent = 100;
+        return;
     }
 
     if (scaleZoomed())
@@ -703,11 +748,9 @@ ShowImage::processImage()
                                                Qt::KeepAspectRatio,
                                                transformationMode());
 
-    double percent = 0.0;
-    if (m_image.width() > 0)
-    {
-        percent = std::round((100.0 * m_imageProcessed.width()) / m_image.width());
-    }
+    const double percent = (m_image.width() > 0)
+                         ? std::round((100.0 * m_imageProcessed.width()) / m_image.width())
+                         : 0.0;
     m_percent = static_cast<int>(percent);
 }
 
@@ -737,30 +780,41 @@ ShowImage::readDirectory()
 
     if (m_files.size() > 0)
     {
-        std::sort(
-            m_files.begin(),
-            m_files.end(),
+        std::ranges::sort(
+            m_files,
             [](const auto& lhs, const auto& rhs)
             {
                 return lhs.absoluteFilePath() < rhs.absoluteFilePath();
             });
 
         m_current = 0;
-        splashScreenUnset();
+        splashScreenDisable();
 
         openImage();
     }
     else
     {
         m_current = INVALID_INDEX;
-        splashScreenSet();
+        splashScreenEnable();
     }
 }
 
 // ------------------------------------------------------------------------
 
 void
-ShowImage::splashScreenSet()
+ShowImage::splashScreenDisable()
+{
+    if (m_isSplash)
+    {
+        m_isSplash = false;
+        setExtents();
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+ShowImage::splashScreenEnable()
 {
     if (not m_isSplash)
     {
@@ -779,18 +833,6 @@ ShowImage::splashScreenSet()
 
         setExtents();
         repaint();
-    }
-}
-
-// ------------------------------------------------------------------------
-
-void
-ShowImage::splashScreenUnset()
-{
-    if (m_isSplash)
-    {
-        m_isSplash = false;
-        setExtents();
     }
 }
 

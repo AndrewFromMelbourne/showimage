@@ -27,7 +27,10 @@
 
 #include "histogram.h"
 
+#include <algorithm>
 #include <array>
+#include <functional>
+#include <ranges>
 
 // ========================================================================
 
@@ -45,6 +48,31 @@ namespace
     static constexpr int ColourValues{256};
     static constexpr int BackgroundBrightness{63};
     static constexpr int HistogramBrightness{255};
+
+//-------------------------------------------------------------------------
+
+using Channel = int (QColor::*)() const;
+
+std::function<int(const QColor&, Channel)>
+scaleChannelFunction(
+    const QImage& input)
+{
+    if (input.hasAlphaChannel())
+    {
+        return []( const QColor& c, Channel channel ) -> int
+        {
+            return ( (c.*channel)() * c.alpha() ) / 255;
+        };
+    }
+
+    return []( const QColor& c, Channel channel ) -> int
+    {
+        return (c.*channel)();
+    };
+}
+
+//-------------------------------------------------------------------------
+
 };
 
 // ========================================================================
@@ -58,23 +86,24 @@ histogramRGB(
     std::array<RGBCount, ColourValues> counts{};
 
     QImage output{ColourValues, HistogramHeight, QImage::Format_ARGB32};
+    auto scaleChannel = scaleChannelFunction(input);
 
     for (auto j = 0 ; j < height ; ++j)
     {
         for (auto i = 0 ; i < width ; ++i)
         {
             const auto c = input.pixelColor(i, j);
-            ++(counts[(c.red() * c.alpha()) / 255].r);
-            ++(counts[(c.green() * c.alpha()) / 255].g);
-            ++(counts[(c.blue() * c.alpha()) / 255].b);
+            ++(counts[scaleChannel(c, &QColor::red)].r);
+            ++(counts[scaleChannel(c, &QColor::green)].g);
+            ++(counts[scaleChannel(c, &QColor::blue)].b);
         }
     }
 
-    int max{0};
+    int max{};
 
-    for (auto i = 0 ; i < ColourValues ; ++i)
+    for (const auto& count : counts)
     {
-        max = std::max({max, counts[i].r, counts[i].g, counts[i].b});
+        max = std::max({max, count.r, count.g, count.b});
     }
 
     for (auto i = 0 ; i < ColourValues ; ++i)
@@ -106,7 +135,7 @@ histogramIntensity(
 {
     const auto width = input.width();
     const auto height = input.height();
-    std::array<int, 256> counts{};
+    std::array<int, ColourValues> counts{};
 
     QImage output{ColourValues, HistogramHeight, QImage::Format_ARGB32};
 
@@ -119,12 +148,7 @@ histogramIntensity(
         }
     }
 
-    int max{0};
-
-    for (auto i = 0 ; i < ColourValues ; ++i)
-    {
-        max = std::max(max, counts[i]);
-    }
+    auto max = std::ranges::max(counts);
 
     for (auto i = 0 ; i < ColourValues ; ++i)
     {

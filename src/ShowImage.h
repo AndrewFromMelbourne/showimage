@@ -133,6 +133,7 @@ private:
     void framePrevious();
     void handleGeneralKeys(int key, bool isShift);
     void handleImageViewingKeys(int key, bool isShift);
+    void histogram(QPainter& painter);
     void imageNext();
     void imageNext(bool step);
     void imagePrevious();
@@ -145,9 +146,13 @@ private:
     void pan(int x, int y);
     [[nodiscard]] QPoint placeImage(const QImage& image) const noexcept;
     void processImage();
+    void processImageEnlighten();
+    void processImageGreyscale();
+    void processImageHistogram();
+    void processImageResize();
     void readDirectory();
-    void splashScreenSet();
-    void splashScreenUnset();
+    void splashScreenDisable();
+    void splashScreenEnable();
     void toggleAnnotation();
     void toggleBlankScreen();
     void toggleFitToScreen();
