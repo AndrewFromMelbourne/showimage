@@ -48,6 +48,7 @@ Scale::oversize() const noexcept
 QImage
 Scale::scale(const QImage& image)
 {
+    m_imageSize = image.size();
     if (notScaled() or scaleActualSize())
     {
         m_percent = 100;
