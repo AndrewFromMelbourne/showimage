@@ -84,6 +84,14 @@ private:
             m_zoomedY(y * m_zoom)
         {}
 
+        void center() noexcept
+        {
+            m_x = 0;
+            m_y = 0;
+            m_zoomedX = 0;
+            m_zoomedY = 0;
+        }
+
         void pan(int dx, int dy, int zoom) noexcept
         {
             m_x += dx;
@@ -123,7 +131,7 @@ private:
 
     void center() noexcept
     {
-        m_offset = Offset(0, 0);
+        m_offset.center();
     }
 
     // --------------------------------------------------------------------
