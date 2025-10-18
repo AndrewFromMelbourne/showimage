@@ -27,37 +27,36 @@
 
 #pragma once
 
-#include <QImage>
+#include <QFileInfo>
+#include <QString>
+
+#include <vector>
 
 // ------------------------------------------------------------------------
 
-class Histogram
+class Files
 {
 public:
 
-    enum Style
-    {
-        HISTOGRAM_OFF = 0,
-        HISTOGRAM_RGB = 1,
-        HISTOGRAM_INTENSITY = 2
-    };
+    [[nodiscard]] QString absolutePath() const { return m_files[m_current].absoluteFilePath(); }
+    [[nodiscard]] std::size_t count() const noexcept { return m_files.size(); }
+    [[nodiscard]] QString directory() const noexcept { return m_directory; }
+    [[nodiscard]] int index() const noexcept { return m_current; }
+    [[nodiscard]] QString path() const { return m_files[m_current].filePath(); }
+    [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
+    void setDirectory(const QString& directory) { m_directory = directory; }
 
-    [[nodiscard]] const QImage& image() const noexcept { return m_image; }
-    void invalidate() noexcept { m_isValid = false; }
-    [[nodiscard]] bool isValid() const noexcept { return m_isValid; }
-
-    void process(const QImage& image);
-    void toggle() noexcept;
+    void next(bool step = false) noexcept;
+    void openDirectory(const QString& directory);
+    void previous(bool step = false) noexcept;
+    [[nodiscard]] bool readDirectory();
 
 private:
 
-    QImage m_image{};
-    bool m_isValid{false};
-    Style m_style{HISTOGRAM_OFF};
+    static const int INVALID_INDEX{-1};
+
+    int m_current{INVALID_INDEX};
+    QString m_directory{};
+    std::vector<QFileInfo> m_files{};
 };
-
-// ------------------------------------------------------------------------
-
-QImage histogramRGB(const QImage& input);
-QImage histogramIntensity(const QImage& input);
 

@@ -7,15 +7,17 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Widgets Concurrent REQUIRED)
 
 add_executable(showimage ${CMAKE_CURRENT_SOURCE_DIR}/src/ShowImage.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/enlighten.cxx
+                         ${CMAKE_CURRENT_SOURCE_DIR}/src/files.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/histogram.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cxx
+                         ${CMAKE_CURRENT_SOURCE_DIR}/src/scale.cxx
                          ${CMAKE_CURRENT_SOURCE_DIR}/src/splash.cxx)
 
-target_link_libraries(showimage PUBLIC Qt6::Widgets)
+target_link_libraries(showimage PUBLIC Qt6::Widgets Qt6::Concurrent)
 
 if (WIN32)
     set_target_properties(showimage PROPERTIES WIN32_EXECUTABLE TRUE)

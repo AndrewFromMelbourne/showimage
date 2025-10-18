@@ -27,37 +27,46 @@
 
 #pragma once
 
-#include <QImage>
-
 // ------------------------------------------------------------------------
 
-class Histogram
+class Frame
 {
 public:
 
-    enum Style
+    [[nodiscard]] bool next() noexcept
     {
-        HISTOGRAM_OFF = 0,
-        HISTOGRAM_RGB = 1,
-        HISTOGRAM_INTENSITY = 2
-    };
+        if (m_max == 0)
+        {
+            return false;
+        }
 
-    [[nodiscard]] const QImage& image() const noexcept { return m_image; }
-    void invalidate() noexcept { m_isValid = false; }
-    [[nodiscard]] bool isValid() const noexcept { return m_isValid; }
+        m_index = (m_index == m_max) ? 0 : m_index + 1;
+        return true;
+    }
 
-    void process(const QImage& image);
-    void toggle() noexcept;
+    [[nodiscard]] bool previous() noexcept
+    {
+        if (m_max == 0)
+        {
+            return false;
+        }
+
+        m_index = (m_index == 0) ? m_max : m_index - 1;
+        return true;
+    }
+
+    void set(int max) noexcept
+    {
+        m_index = 0;
+        m_max = max;
+    }
+
+    int index() const noexcept { return m_index; }
+    int max() const noexcept { return m_max; }
 
 private:
 
-    QImage m_image{};
-    bool m_isValid{false};
-    Style m_style{HISTOGRAM_OFF};
+    int m_index{};
+    int m_max{};
 };
-
-// ------------------------------------------------------------------------
-
-QImage histogramRGB(const QImage& input);
-QImage histogramIntensity(const QImage& input);
 

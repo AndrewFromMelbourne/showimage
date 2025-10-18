@@ -25,6 +25,11 @@
 //
 //-------------------------------------------------------------------------
 
+#include <QtConcurrent>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QThread>
+
 #include "enlighten.h"
 
 // ========================================================================
@@ -68,7 +73,7 @@ blur(
 
     for (auto j = 0 ; j < height ; ++j)
     {
-        const auto* row = input.scanLine(j);
+        const auto* row = input.constScanLine(j);
         auto* outputRow = rb.scanLine(j);
 
         int sum{0};
@@ -95,13 +100,13 @@ blur(
 
         for (auto k = -radius - 1 ; k < radius ; ++k)
         {
-            sum += *(rb.scanLine(std::clamp(k, 0, height - 1)) + i);
+            sum += *(rb.constScanLine(std::clamp(k, 0, height - 1)) + i);
         }
 
         for (auto j = 0 ; j < height ; ++j)
         {
-            sum += *(rb.scanLine(std::clamp(j + radius, 0, height - 1)) + i);
-            sum -= *(rb.scanLine(std::clamp(j - radius - 1, 0, height - 1)) + i);
+            sum += *(rb.constScanLine(std::clamp(j + radius, 0, height - 1)) + i);
+            sum -= *(rb.constScanLine(std::clamp(j - radius - 1, 0, height - 1)) + i);
 
             *(output.scanLine(j) + i) = sum / diameter;
         }
@@ -110,24 +115,149 @@ blur(
     return output;
 }
 
+// -------------------------------------------------------------------------
+
+void
+maximumRow(
+    int j,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    auto* outputRow = output.scanLine(j);
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        const auto c = input.pixelColor(i, j);
+        *(outputRow++) = std::max({c.red(), c.green(), c.blue()});
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+maximumRowARGB32(
+    int row,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    auto* outputRow = output.scanLine(row);
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(row));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = *(pixel++);
+        *(outputRow++) = std::max({qRed(rgb), qGreen(rgb), qBlue(rgb)}) * qAlpha(rgb) / 255;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+maximumRowRGB32(
+    int row,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    auto* outputRow = output.scanLine(row);
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(row));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = *(pixel++);
+        *(outputRow++) = std::max({qRed(rgb), qGreen(rgb), qBlue(rgb)});
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+maximumRowGrey8(
+    int row,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    auto* outputRow = output.scanLine(row);
+    const auto* pixel = input.constScanLine(row);
+    std::copy(pixel, pixel + width, output.scanLine(row));
+}
+
+// -------------------------------------------------------------------------
+
+auto
+maximumRowFunction(
+    const QImage& input)
+{
+    switch (input.format())
+    {
+        case QImage::Format_ARGB32:
+
+            return maximumRowARGB32;
+
+        case QImage::Format_RGB32:
+
+            return maximumRowRGB32;
+
+        case QImage::Format_Grayscale8:
+
+            return maximumRowGrey8;
+
+        default:
+
+            return maximumRow;
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+maximumRowRange(
+    int jStart,
+    int jEnd,
+    const QImage& input,
+    QImage& output)
+{
+    auto rowFunction = maximumRowFunction(input);
+
+    for (auto j = jStart ; j < jEnd ; ++j)
+    {
+        rowFunction(j, input, output);
+    }
+}
+
 // ------------------------------------------------------------------------
 
 QImage
 maximum(const QImage& input)
 {
-    const auto width = input.width();
     const auto height = input.height();
+    const auto width = input.width();
 
     QImage output{width, height, QImage::Format_Grayscale8};
+    const auto cores = QThread::idealThreadCount();
+    const auto rowsPerCore = height / cores;
 
-    for (auto j = 0 ; j < height ; ++j)
+    if ((cores == 1) or (rowsPerCore < 100))
     {
-        auto outputRow = output.scanLine(j);
-
-        for (auto i = 0 ; i < width ; ++i)
+        maximumRowRange(0, height, input, output);
+    }
+    else
+    {
+        QFutureSynchronizer<void> synchronizer;
+        auto runner = [=, &input, &output](int jStart, int jEnd)
         {
-            const auto c = input.pixelColor(i, j);
-            *(outputRow++) = std::max({c.red(), c.green(), c.blue()});
+            maximumRowRange(jStart, jEnd, input, output);
+        };
+
+        for (auto core = 0 ; core < cores ; ++core)
+        {
+            const auto jStart = core * rowsPerCore;
+            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+
+            synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
         }
     }
 
@@ -140,47 +270,241 @@ maximum(const QImage& input)
 
 // ========================================================================
 
+void
+enlighterRow(
+    int j,
+    double minI,
+    double maxI,
+    const QImage& mb,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    const auto* mbRow = mb.constScanLine(j);
+    auto* outputRow = reinterpret_cast<QRgb*>(output.scanLine(j));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto c = input.pixel(i, j);
+        const auto max = *(mbRow++);
+        const auto illumination = std::clamp(max / 255.0, minI, maxI);
+
+        if (illumination < maxI)
+        {
+            const auto p = illumination / maxI;
+            const auto scale = (0.4 + (p * 0.6)) / p;
+
+            const auto red = static_cast<int>(std::clamp(qRed(c) * scale, 0.0, 255.0));
+            const auto green = static_cast<int>(std::clamp(qGreen(c) * scale, 0.0, 255.0));
+            const auto blue = static_cast<int>(std::clamp(qBlue(c) * scale, 0.0, 255.0));
+
+            c = qRgb(red, green, blue);
+        }
+
+        *(outputRow++) = c;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+enlighterRowARGB32(
+    int j,
+    double minI,
+    double maxI,
+    const QImage& mb,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(j));
+    const auto* mbRow = mb.constScanLine(j);
+    auto* outputRow = reinterpret_cast<QRgb*>(output.scanLine(j));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto c = *(pixel++);
+        const auto max = *(mbRow++);
+        const auto illumination = std::clamp(max / 255.0, minI, maxI);
+
+        if (illumination < maxI)
+        {
+            const auto p = illumination / maxI;
+            const auto scale = (0.4 + (p * 0.6)) / p;
+
+            const auto red = static_cast<int>(std::clamp(qRed(c) * scale, 0.0, 255.0));
+            const auto green = static_cast<int>(std::clamp(qGreen(c) * scale, 0.0, 255.0));
+            const auto blue = static_cast<int>(std::clamp(qBlue(c) * scale, 0.0, 255.0));
+
+            c = qRgb(red, green, blue);
+        }
+
+        *(outputRow++) = c;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+enlighterRowRGB32(
+    int j,
+    double minI,
+    double maxI,
+    const QImage& mb,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(j));
+    const auto* mbRow = mb.constScanLine(j);
+    auto* outputRow = reinterpret_cast<QRgb*>(output.scanLine(j));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto c = *(pixel++);
+        const auto max = *(mbRow++);
+        const auto illumination = std::clamp(max / 255.0, minI, maxI);
+
+        if (illumination < maxI)
+        {
+            const auto p = illumination / maxI;
+            const auto scale = (0.4 + (p * 0.6)) / p;
+
+            const auto red = static_cast<int>(std::clamp(qRed(c) * scale, 0.0, 255.0));
+            const auto green = static_cast<int>(std::clamp(qGreen(c) * scale, 0.0, 255.0));
+            const auto blue = static_cast<int>(std::clamp(qBlue(c) * scale, 0.0, 255.0));
+
+            c = qRgb(red, green, blue);
+        }
+
+        *(outputRow++) = c;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+enlighterRowGrey8(
+    int j,
+    double minI,
+    double maxI,
+    const QImage& mb,
+    const QImage& input,
+    QImage& output)
+{
+    const auto width = input.width();
+    const auto* pixel = input.constScanLine(j);
+    const auto* mbRow = mb.constScanLine(j);
+    auto* outputRow = reinterpret_cast<QRgb*>(output.scanLine(j));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto grey = *(pixel++);
+        const auto max = *(mbRow++);
+        const auto illumination = std::clamp(max / 255.0, minI, maxI);
+
+        if (illumination < maxI)
+        {
+            const auto p = illumination / maxI;
+            const auto scale = (0.4 + (p * 0.6)) / p;
+
+            grey = static_cast<int>(std::clamp(grey * scale, 0.0, 255.0));
+        }
+
+        *(outputRow++) = qRgb(grey, grey, grey);;
+    }
+
+}
+
+// -------------------------------------------------------------------------
+
+auto
+enlightenRowFunction(
+    const QImage& input)
+{
+    switch (input.format())
+    {
+        case QImage::Format_ARGB32:
+
+            return enlighterRowARGB32;
+
+        case QImage::Format_RGB32:
+
+            return enlighterRowRGB32;
+
+        case QImage::Format_Grayscale8:
+
+            return enlighterRowGrey8;
+
+        default:
+
+            return enlighterRow;
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+enlightenRowRange(
+    int jStart,
+    int jEnd,
+    double minI,
+    double maxI,
+    const QImage& mb,
+    const QImage& input,
+    QImage& output)
+{
+    auto rowFunction = enlightenRowFunction(input);
+
+    for (auto j = jStart ; j < jEnd ; ++j)
+    {
+        rowFunction(j, minI, maxI, mb, input, output);
+    }
+}
+
+// ------------------------------------------------------------------------
+
 QImage
 enlighten(
     const QImage& input,
     double strength)
 {
     const auto mb = blur(maximum(input), 12);
-    const auto width = input.width();
     const auto height = input.height();
+    const auto width = input.width();
 
-    QImage output{width, height, QImage::Format_RGB32};
+    QImage output{width, height, QImage::Format_ARGB32};
 
     const auto strength2 = strength * strength;
     const auto minI = 1.0 / flerp(1.0, 10.0, strength2);
     const auto maxI = 1.0 / flerp(1.0, 1.111, strength2);
+#if 1
+    const auto cores = QThread::idealThreadCount();
+    const auto rowsPerCore = height / cores;
 
-    for (auto j = 0 ; j < height ; ++j)
+    if ((cores == 1) or (rowsPerCore < 100))
     {
-        auto mbRow = mb.scanLine(j);
-        auto outputRow = reinterpret_cast<QRgb*>(output.scanLine(j));
-
-        for (auto i = 0 ; i < width ; ++i)
+        enlightenRowRange(0, height, minI, maxI, mb, input, output);
+    }
+    else
+    {
+        QFutureSynchronizer<void> synchronizer;
+        auto runner = [=, &mb, &input, &output](int jStart, int jEnd)
         {
-            auto c = input.pixel(i, j);
-            const auto max = *(mbRow++);
-            const auto illumination = std::clamp(max / 255.0, minI, maxI);
+            enlightenRowRange(jStart, jEnd, minI, maxI, mb, input, output);
+        };
 
-            if (illumination < maxI)
-            {
-                const auto p = illumination / maxI;
-                const auto scale = (0.4 + (p * 0.6)) / p;
+        for (auto core = 0 ; core < cores ; ++core)
+        {
+            const auto jStart = core * rowsPerCore;
+            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
 
-                const auto red = static_cast<int>(std::clamp(qRed(c) * scale, 0.0, 255.0));
-                const auto green = static_cast<int>(std::clamp(qGreen(c) * scale, 0.0, 255.0));
-                const auto blue = static_cast<int>(std::clamp(qBlue(c) * scale, 0.0, 255.0));
-
-                c = qRgb(red, green, blue);
-            }
-
-            *(outputRow++) = c;
+            synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
         }
     }
+#else
+    enlightenRowRange(0, height, minI, maxI, mb, input, output);
+#endif
 
     return output;
 }

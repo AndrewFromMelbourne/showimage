@@ -26,7 +26,6 @@
 //-------------------------------------------------------------------------
 
 #include "enlighten.h"
-#include "histogram.h"
 #include "ShowImage.h"
 #include "splash.h"
 
@@ -43,22 +42,17 @@
 #include <iostream>
 #include <ranges>
 
-//-------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 ShowImage::ShowImage(QWidget* parent)
 :
     QMainWindow(parent),
     m_annotate{FONT_REGULAR},
-    m_current{-1},
-    m_directory{},
     m_enlighten{0},
     m_files{},
-    m_fitToScreen{true},
-    m_frame{0},
-    m_frameIndexMax{0},
+    m_frame{},
     m_greyscale{false},
-    m_histogram{HISTOGRAM_OFF},
-    m_histogramImage{},
+    m_histogram{},
     m_image{
         splash,
         ShowImage::DEFAULT_WIDTH,
@@ -68,18 +62,9 @@ ShowImage::ShowImage(QWidget* parent)
     m_imageProcessed{},
     m_isBlank{false},
     m_isSplash{true},
-    m_percent{100},
-    m_smoothScale{true},
-    m_offset{0, 0},
-    m_zoom{0}
+    m_offset{0, 0}
 {
     QImageReader::setAllocationLimit(0);
-}
-
-// ------------------------------------------------------------------------
-
-ShowImage::~ShowImage()
-{
 }
 
 // ------------------------------------------------------------------------
@@ -150,6 +135,7 @@ ShowImage::resizeEvent(QResizeEvent *event)
         setExtents();
     }
 
+    m_scale.screenResize(event->size());
     processImage();
 }
 
@@ -236,31 +222,31 @@ ShowImage::annotate(QPainter& painter)
 QString
 ShowImage::annotation() const
 {
-    const auto name = m_files[m_current].absoluteFilePath();
-    const auto nameLength = name.length() - m_directory.length() - 1;
+    const auto name = m_files.absolutePath();
+    const auto nameLength = name.length() - m_files.directory().length() - 1;
     auto text = QString("%1").arg(name.right(nameLength));
 
     text += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
                                         QString::number(m_image.height()));
 
-    text += QString(" [ %1 / %2 ]").arg(QString::number(m_current + 1),
-                                        QString::number(m_files.size()));
+    text += QString(" [ %1 / %2 ]").arg(QString::number(m_files.index() + 1),
+                                        QString::number(m_files.count()));
 
-    text += QString(" %1%").arg(QString::number(m_percent));
+    text += QString(" %1%").arg(QString::number(m_scale.percent()));
 
-    if (not originalSize())
+    if (not m_scale.originalSize())
     {
-        text += transformationLabel();
+        text += m_scale.transformationLabel();
     }
 
     text += colourLabel();
-    text += fitToScreenLabel();
+    text += m_scale.fitToScreenLabel();
     text += QString(" [ enlighten %1% ]").arg(QString::number(m_enlighten * 10));
 
-    if (m_frameIndexMax > 0)
+    if (m_frame.max() > 0)
     {
-        text += QString(" [ frame %1/%2 ]").arg(QString::number(m_frame + 1),
-                                                QString::number(m_frameIndexMax + 1));
+        text += QString(" [ frame %1/%2 ]").arg(QString::number(m_frame.index() + 1),
+                                                QString::number(m_frame.max() + 1));
     }
 
     return text;
@@ -292,6 +278,7 @@ ShowImage::enlighten(bool decrease)
 
     if (repaint)
     {
+        m_histogram.invalidate();
         processImageAndRepaint();
     }
 }
@@ -301,9 +288,8 @@ ShowImage::enlighten(bool decrease)
 void
 ShowImage::frameNext()
 {
-    if (haveFrames())
+    if (m_frame.next())
     {
-        m_frame = (m_frame == m_frameIndexMax) ? 0 : m_frame + 1;
         openFrame();
     }
 }
@@ -313,9 +299,8 @@ ShowImage::frameNext()
 void
 ShowImage::framePrevious()
 {
-    if (haveFrames())
+    if (m_frame.previous())
     {
-        m_frame = (m_frame == 0) ? m_frameIndexMax : m_frame - 1;
         openFrame();
     }
 }
@@ -358,6 +343,8 @@ ShowImage::handleGeneralKeys(int key, bool isShift)
 void
 ShowImage::handleImageViewingKeys(int key, bool isShift)
 {
+    const auto panStep = isShift ? PAN_STEP_LARGE : PAN_STEP_SMALL;
+
     switch (key)
     {
         case Qt::Key_Left:
@@ -382,7 +369,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_A:
 
-            pan(PAN_STEP, 0);
+            pan(panStep, 0);
             break;
 
         case Qt::Key_C:
@@ -392,7 +379,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_D:
 
-            pan(-PAN_STEP, 0);
+            pan(-panStep, 0);
             break;
 
         case Qt::Key_E:
@@ -417,12 +404,12 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 
         case Qt::Key_S:
 
-            pan(0, -PAN_STEP);
+            pan(0, -panStep);
             break;
 
         case Qt::Key_W:
 
-            pan(0, PAN_STEP);
+            pan(0, panStep);
             break;
 
         case Qt::Key_X:
@@ -463,27 +450,15 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 void
 ShowImage::histogram(QPainter& painter)
 {
-    if ((m_histogram == HISTOGRAM_OFF) or m_histogramImage.isNull())
+    const auto& histogramImage = m_histogram.image();
+    if (histogramImage.isNull())
     {
         return;
     }
 
-    const auto x = width() - m_histogramImage.width() - 2;
-    const auto y = height() - m_histogramImage.height() - 2;
-    painter.drawImage(QPoint(x, y), m_histogramImage);
-}
-
-// ------------------------------------------------------------------------
-
-void
-ShowImage::imageNext()
-{
-    if (haveImages())
-    {
-        m_current = (m_current == m_files.size() - 1) ? 0 : m_current + 1;
-        m_frame = 0;
-        openImage();
-    }
+    const auto x = width() - histogramImage.width() - 2;
+    const auto y = height() - histogramImage.height() - 2;
+    painter.drawImage(QPoint(x, y), histogramImage);
 }
 
 // ------------------------------------------------------------------------
@@ -491,32 +466,9 @@ ShowImage::imageNext()
 void
 ShowImage::imageNext(bool step)
 {
-    if (not step)
-    {
-        imageNext();
-    }
-    else if (haveImages())
-    {
-        m_current += 10;
-        if (m_current >= m_files.size())
-        {
-            m_current = 0;
-        }
-
-        m_frame = 0;
-        openImage();
-    }
-}
-
-// ------------------------------------------------------------------------
-
-void
-ShowImage::imagePrevious()
-{
     if (haveImages())
     {
-        m_current = (m_current == 0) ? m_files.size() - 1 : m_current - 1;
-        m_frame = 0;
+        m_files.next(step);
         openImage();
     }
 }
@@ -526,18 +478,9 @@ ShowImage::imagePrevious()
 void
 ShowImage::imagePrevious(bool step)
 {
-    if (not step)
+    if (haveImages())
     {
-        imagePrevious();
-    }
-    else if (haveImages())
-    {
-        m_current -= 10;
-        if (m_current < 0)
-        {
-            m_current = m_files.size() - 1;
-        }
-        m_frame = 0;
+        m_files.previous(step);
         openImage();
     }
 }
@@ -547,7 +490,7 @@ ShowImage::imagePrevious(bool step)
 void
 ShowImage::openDirectory()
 {
-    m_directory = QFileDialog::getExistingDirectory(this, "Image folder");
+    m_files.setDirectory(QFileDialog::getExistingDirectory(this, "Image folder"));
     readDirectory();
 }
 
@@ -556,14 +499,15 @@ ShowImage::openDirectory()
 void
 ShowImage::openFrame()
 {
-    QImageReader reader{m_files[m_current].filePath()};
+    QImageReader reader{m_files.path()};
 
-    for (auto i = 0 ; i < m_frame ; ++i)
+    for (auto i = 0 ; i < m_frame.index() ; ++i)
     {
         reader.read();
     }
 
     m_image = reader.read();
+    m_histogram.invalidate();
 
     processImageAndRepaint();
 }
@@ -573,30 +517,16 @@ ShowImage::openFrame()
 void
 ShowImage::openImage()
 {
-    QImageReader reader{m_files[m_current].filePath()};
+    QImageReader reader{m_files.path()};
 
-    m_frameIndexMax = reader.imageCount() - 1;
+    m_frame.set(reader.imageCount() - 1);
     m_image = reader.read();
 
     center();
     m_enlighten = 0;
+    m_histogram.invalidate();
 
     processImageAndRepaint();
-}
-
-// ------------------------------------------------------------------------
-
-bool
-ShowImage::oversize() const noexcept
-{
-    if ((zoomedWidth() > width()) or (zoomedHeight() > height()))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
 }
 
 // ------------------------------------------------------------------------
@@ -615,7 +545,7 @@ ShowImage::paint(QPainter& painter)
         return;
     }
 
-    if (not oversize())
+    if (not m_scale.oversize())
     {
         center();
     }
@@ -634,9 +564,10 @@ ShowImage::paint(QPainter& painter)
 void
 ShowImage::pan(int x, int y)
 {
-    if (oversize() and (m_zoom != SCALE_OVERSIZED))
+    if (m_scale.oversize() and not m_scale.scaleOversized())
     {
-        m_offset.add(x * m_zoom, y * m_zoom);
+        const auto zoom = m_scale.zoomValue();
+        m_offset.add(x * zoom, y * zoom);
         repaint();
     }
 }
@@ -695,31 +626,7 @@ ShowImage::processImageGreyscale()
 void
 ShowImage::processImageHistogram()
 {
-    switch (m_histogram)
-    {
-        case HISTOGRAM_RGB:
-
-            if (m_greyscale)
-            {
-                m_histogramImage = ::histogramIntensity(m_imageProcessed);
-            }
-            else
-            {
-                m_histogramImage = ::histogramRGB(m_imageProcessed);
-            }
-
-            break;
-
-        case HISTOGRAM_INTENSITY:
-
-            m_histogramImage = ::histogramIntensity(m_imageProcessed);
-            break;
-
-        case HISTOGRAM_OFF:
-
-            m_histogramImage = QImage{};
-            break;
-    }
+    m_histogram.process(m_imageProcessed);
 }
 
 // ------------------------------------------------------------------------
@@ -727,31 +634,7 @@ ShowImage::processImageHistogram()
 void
 ShowImage::processImageResize()
 {
-    if (notScaled() or scaleActualSize())
-    {
-        m_percent = 100;
-        return;
-    }
-
-    if (scaleZoomed())
-    {
-        m_imageProcessed = m_imageProcessed.scaled(m_imageProcessed.width() * m_zoom,
-                                                   m_imageProcessed.height() * m_zoom,
-                                                   Qt::KeepAspectRatio,
-                                                   transformationMode());
-
-        m_percent = m_zoom * 100;
-        return;
-    }
-
-    m_imageProcessed = m_imageProcessed.scaled(QSize(width(), height()),
-                                               Qt::KeepAspectRatio,
-                                               transformationMode());
-
-    const double percent = (m_image.width() > 0)
-                         ? std::round((100.0 * m_imageProcessed.width()) / m_image.width())
-                         : 0.0;
-    m_percent = static_cast<int>(percent);
+    m_imageProcessed = m_scale.scale(m_imageProcessed);
 }
 
 // ------------------------------------------------------------------------
@@ -759,42 +642,13 @@ ShowImage::processImageResize()
 void
 ShowImage::readDirectory()
 {
-    m_files.clear();
-
-    if (m_directory.length() > 0)
+    if (m_files.readDirectory())
     {
-        QDirIterator iter(m_directory,
-                          {"*.bmp", "*.gif", "*.jpg", "*.jpeg", "*.png"},
-                          QDir::Files,
-                          QDirIterator::Subdirectories);
-        while (iter.hasNext())
-        {
-            auto fileInfo = iter.nextFileInfo();
-
-            if (fileInfo.isFile())
-            {
-                m_files.push_back(fileInfo);
-            }
-        }
-    }
-
-    if (m_files.size() > 0)
-    {
-        std::ranges::sort(
-            m_files,
-            [](const auto& lhs, const auto& rhs)
-            {
-                return lhs.absoluteFilePath() < rhs.absoluteFilePath();
-            });
-
-        m_current = 0;
         splashScreenDisable();
-
         openImage();
     }
     else
     {
-        m_current = INVALID_INDEX;
         splashScreenEnable();
     }
 }
@@ -875,8 +729,7 @@ ShowImage::toggleBlankScreen()
 void
 ShowImage::toggleFitToScreen()
 {
-    m_fitToScreen = !m_fitToScreen;
-    processImageAndRepaint();
+    m_scale.toggleFitToScreen();
 }
 
 // ------------------------------------------------------------------------
@@ -900,6 +753,7 @@ void
 ShowImage::toggleGreyScale()
 {
     m_greyscale = !m_greyscale;
+    m_histogram.invalidate();
     processImageAndRepaint();
 }
 
@@ -908,24 +762,7 @@ ShowImage::toggleGreyScale()
 void
 ShowImage::toggleHistogram()
 {
-    switch (m_histogram)
-    {
-    case HISTOGRAM_OFF:
-
-        m_histogram = HISTOGRAM_RGB;
-        break;
-
-    case HISTOGRAM_RGB:
-
-        m_histogram = HISTOGRAM_INTENSITY;
-        break;
-
-    case HISTOGRAM_INTENSITY:
-
-        m_histogram = HISTOGRAM_OFF;
-        break;
-    }
-
+    m_histogram.toggle();
     processImageAndRepaint();
 }
 
@@ -934,26 +771,11 @@ ShowImage::toggleHistogram()
 void
 ShowImage::toggleSmoothScale()
 {
-    m_smoothScale = !m_smoothScale;
+    m_scale.toggleSmoothScale();
 
-    if (not originalSize())
+    if (not m_scale.originalSize())
     {
         processImageAndRepaint();
-    }
-}
-
-// ------------------------------------------------------------------------
-
-Qt::TransformationMode
-ShowImage::transformationMode() const noexcept
-{
-    if (m_smoothScale)
-    {
-        return Qt::SmoothTransformation;
-    }
-    else
-    {
-        return Qt::FastTransformation;
     }
 }
 
@@ -962,9 +784,8 @@ ShowImage::transformationMode() const noexcept
 void
 ShowImage::zoomIn()
 {
-    if (m_zoom < SCALE_MAXIMUM)
+    if (m_scale.zoomIn())
     {
-        ++m_zoom;
         processImageAndRepaint();
     }
 }
@@ -974,15 +795,8 @@ ShowImage::zoomIn()
 void
 ShowImage::zoomOut()
 {
-    if (m_zoom > 0)
+    if (m_scale.zoomOut())
     {
-        --m_zoom;
-
-        if (m_zoom == 0)
-        {
-            center();
-        }
-
         processImageAndRepaint();
     }
 }

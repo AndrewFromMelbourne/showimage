@@ -25,12 +25,82 @@
 //
 //-------------------------------------------------------------------------
 
+#include <QtConcurrent>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QThread>
+
 #include "histogram.h"
 
 #include <algorithm>
 #include <array>
 #include <functional>
 #include <ranges>
+
+// ========================================================================
+
+void
+Histogram::process(const QImage& image)
+{
+    if (m_isValid)
+    {
+        return;
+    }
+
+    m_isValid = true;
+
+    switch (m_style)
+    {
+        case HISTOGRAM_RGB:
+
+            if (m_image.format() == QImage::Format_Grayscale8)
+            {
+                m_image = ::histogramIntensity(image);
+            }
+            else
+            {
+                m_image = ::histogramRGB(image);
+            }
+
+            break;
+
+        case HISTOGRAM_INTENSITY:
+
+            m_image = ::histogramIntensity(image);
+            break;
+
+        case HISTOGRAM_OFF:
+
+            m_image = QImage{};
+            break;
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void
+Histogram::toggle() noexcept
+{
+    switch (m_style)
+    {
+    case HISTOGRAM_OFF:
+
+        m_style = HISTOGRAM_RGB;
+        break;
+
+    case HISTOGRAM_RGB:
+
+        m_style = HISTOGRAM_INTENSITY;
+        break;
+
+    case HISTOGRAM_INTENSITY:
+
+        m_style = HISTOGRAM_OFF;
+        break;
+    }
+
+    m_isValid = false;
+}
 
 // ========================================================================
 
@@ -49,33 +119,163 @@ namespace
     static constexpr int BackgroundBrightness{63};
     static constexpr int HistogramBrightness{255};
 
-//-------------------------------------------------------------------------
-
-using Channel = int (QColor::*)() const;
-
-std::function<int(const QColor&, Channel)>
-scaleChannelFunction(
-    const QImage& input)
-{
-    if (input.hasAlphaChannel())
-    {
-        return []( const QColor& c, Channel channel ) -> int
-        {
-            return ( (c.*channel)() * c.alpha() ) / 255;
-        };
-    }
-
-    return []( const QColor& c, Channel channel ) -> int
-    {
-        return (c.*channel)();
-    };
-}
-
-//-------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 
 };
 
 // ========================================================================
+
+using RGBCountArray = std::array<RGBCount, ColourValues>;
+
+// -------------------------------------------------------------------------
+
+void
+add(
+    RGBCountArray& target,
+    const RGBCountArray& source)
+{
+    for (auto i = 0 ; i < ColourValues ; ++i)
+    {
+        target[i].r += source[i].r;
+        target[i].g += source[i].g;
+        target[i].b += source[i].b;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramColourRow(
+    int j,
+    const QImage& input,
+    RGBCountArray& count)
+{
+    const auto width = input.width();
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto colour = input.pixelColor(i, j);
+        const auto r = colour.red() * colour.alpha() / 255;
+        const auto g = colour.green() * colour.alpha() / 255;
+        const auto b = colour.blue() * colour.alpha() / 255;
+        ++(count[r].r);
+        ++(count[g].g);
+        ++(count[b].b);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramColourRowARGB32(
+    int row,
+    const QImage& input,
+    RGBCountArray& count)
+{
+    const auto width = input.width();
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(row));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = *(pixel++);
+        const auto r = (qRed(rgb) * qAlpha(rgb)) / 255;
+        const auto g = (qGreen(rgb) * qAlpha(rgb)) / 255;
+        const auto b = (qBlue(rgb) * qAlpha(rgb)) / 255;
+        ++(count[r].r);
+        ++(count[g].g);
+        ++(count[b].b);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramColourRowRGB32(
+    int row,
+    const QImage& input,
+    RGBCountArray& count)
+{
+    const auto width = input.width();
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(row));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = *(pixel++);
+        const auto r = qRed(rgb);
+        const auto g = qGreen(rgb);
+        const auto b = qBlue(rgb);
+        ++(count[r].r);
+        ++(count[g].g);
+        ++(count[b].b);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramColourRowGrey8(
+    int row,
+    const QImage& input,
+    RGBCountArray& count)
+{
+    const auto width = input.width();
+    const auto* pixel = input.constScanLine(row);
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        const auto intensity = *(pixel++);
+        ++(count[intensity].r);
+        ++(count[intensity].g);
+        ++(count[intensity].b);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+auto
+histogramColourRowFunction(
+    const QImage& input)
+{
+    switch (input.format())
+    {
+        case QImage::Format_ARGB32:
+
+            return histogramColourRowARGB32;
+
+        case QImage::Format_RGB32:
+
+            return histogramColourRowRGB32;
+
+        case QImage::Format_Grayscale8:
+
+            return histogramColourRowGrey8;
+
+        default:
+
+            return histogramColourRow;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+RGBCountArray
+histogramColourCount(
+    int jStart,
+    int jEnd,
+    const QImage& input)
+{
+    RGBCountArray counts{};
+    auto rowFunction = histogramColourRowFunction(input);
+
+    for (auto j = jStart ; j < jEnd ; ++j)
+    {
+        rowFunction(j, input, counts);
+    }
+
+    return counts;
+}
+
+// -------------------------------------------------------------------------
+
 
 QImage
 histogramRGB(
@@ -83,19 +283,38 @@ histogramRGB(
 {
     const auto width = input.width();
     const auto height = input.height();
-    std::array<RGBCount, ColourValues> counts{};
+    RGBCountArray counts{};
 
     QImage output{ColourValues, HistogramHeight, QImage::Format_ARGB32};
-    auto scaleChannel = scaleChannelFunction(input);
 
-    for (auto j = 0 ; j < height ; ++j)
+    const auto cores = QThread::idealThreadCount();
+    const auto rowsPerCore = height / cores;
+
+    if ((cores == 1) or (rowsPerCore < 100))
     {
-        for (auto i = 0 ; i < width ; ++i)
+        add(counts, histogramColourCount(0, height, input));
+    }
+    else
+    {
+        QFutureSynchronizer<RGBCountArray> synchronizer;
+        auto runner = [=, &input](int jStart, int jEnd) -> auto
         {
-            const auto c = input.pixelColor(i, j);
-            ++(counts[scaleChannel(c, &QColor::red)].r);
-            ++(counts[scaleChannel(c, &QColor::green)].g);
-            ++(counts[scaleChannel(c, &QColor::blue)].b);
+            return histogramColourCount(jStart, jEnd, input);
+        };
+
+        for (auto core = 0 ; core < cores ; ++core)
+        {
+            const auto jStart = core * rowsPerCore;
+            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+
+            synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
+        }
+
+        synchronizer.waitForFinished();
+
+        for (const auto& future : synchronizer.futures())
+        {
+            add(counts, future.result());
         }
     }
 
@@ -127,24 +346,182 @@ histogramRGB(
     return output;
 }
 
-//-------------------------------------------------------------------------
+// ========================================================================
+
+using IntensityCountArray = std::array<int, ColourValues>;
+
+// -------------------------------------------------------------------------
+
+void
+add(
+    IntensityCountArray& target,
+    const IntensityCountArray& source)
+{
+    for (auto i = 0 ; i < ColourValues ; ++i)
+    {
+        target[i] += source[i];
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramGreyRow(
+    int j,
+    const QImage& input,
+    IntensityCountArray& count)
+{
+    const auto width = input.width();
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = input.pixelColor(i, j).rgb();
+        const auto intensity = qGray(rgb) * qAlpha(rgb) / 255;
+        ++(count[intensity]);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramGreyRowARGB32(
+    int row,
+    const QImage& input,
+    IntensityCountArray& count)
+{
+    const auto width = input.width();
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(row));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = *(pixel++);
+        const auto intensity = (qGray(rgb) * qAlpha(rgb)) / 255;
+        ++(count[intensity]);
+    }
+
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramGreyRowRGB32(
+    int row,
+    const QImage& input,
+    IntensityCountArray& count)
+{
+    const auto width = input.width();
+    const auto* pixel = reinterpret_cast<const QRgb*>(input.constScanLine(row));
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        auto rgb = *(pixel++);
+        const auto intensity = qGray(rgb);
+        ++(count[intensity]);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+void
+histogramGreyRowGrey8(
+    int row,
+    const QImage& input,
+    IntensityCountArray& count)
+{
+    const auto width = input.width();
+    const auto* pixel = input.constScanLine(row);
+
+    for (auto i = 0 ; i < width ; ++i)
+    {
+        const auto intensity = *(pixel++);
+        ++(count[intensity]);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+auto
+histogramGreyRowFunction(
+    const QImage& input)
+{
+    switch (input.format())
+    {
+        case QImage::Format_ARGB32:
+
+            return histogramGreyRowARGB32;
+
+        case QImage::Format_RGB32:
+
+            return histogramGreyRowRGB32;
+
+        case QImage::Format_Grayscale8:
+
+            return histogramGreyRowGrey8;
+
+        default:
+
+            return histogramGreyRow;
+    }
+}
+
+// -------------------------------------------------------------------------
+
+IntensityCountArray
+histogramGreyCount(
+    int jStart,
+    int jEnd,
+    const QImage& input)
+{
+    IntensityCountArray counts{};
+    auto rowFunction = histogramGreyRowFunction(input);
+
+    for (auto j = jStart ; j < jEnd ; ++j)
+    {
+        rowFunction(j, input, counts);
+    }
+
+    return counts;
+}
+
+// -------------------------------------------------------------------------
 
 QImage
 histogramIntensity(
     const QImage& input)
 {
-    const auto width = input.width();
     const auto height = input.height();
-    std::array<int, ColourValues> counts{};
+    IntensityCountArray counts{};
 
     QImage output{ColourValues, HistogramHeight, QImage::Format_ARGB32};
+    auto rowFunction = histogramGreyRowFunction(input);
 
-    for (auto j = 0 ; j < height ; ++j)
+    const auto cores = QThread::idealThreadCount();
+    const auto rowsPerCore = height / cores;
+
+    if ((cores == 1) or (rowsPerCore < 100))
     {
-        for (auto i = 0 ; i < width ; ++i)
+        add(counts, histogramGreyCount(0, height, input));
+    }
+    else
+    {
+        QFutureSynchronizer<IntensityCountArray> synchronizer;
+        auto runner = [=, &input](int jStart, int jEnd) -> auto
         {
-            const auto intensity = qGray(input.pixelColor(i, j).rgb());
-            ++(counts[intensity]);
+            return histogramGreyCount(jStart, jEnd, input);
+        };
+
+        for (auto core = 0 ; core < cores ; ++core)
+        {
+            const auto jStart = core * rowsPerCore;
+            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+
+            synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
+        }
+
+        synchronizer.waitForFinished();
+
+        for (const auto& future : synchronizer.futures())
+        {
+            add(counts, future.result());
         }
     }
 

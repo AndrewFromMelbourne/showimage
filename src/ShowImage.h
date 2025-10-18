@@ -27,9 +27,13 @@
 
 #pragma once
 
-#include <QFileInfo>
 #include <QMainWindow>
 #include <QPainter>
+
+#include "files.h"
+#include "frame.h"
+#include "histogram.h"
+#include "scale.h"
 
 #include <vector>
 
@@ -47,7 +51,7 @@ public:
     static const int DEFAULT_HEIGHT{480};
 
     ShowImage(QWidget* parent = nullptr);
-    virtual ~ShowImage();
+    virtual ~ShowImage() = default;
 
     ShowImage(const ShowImage&) = delete;
     ShowImage(ShowImage &&) = delete;
@@ -65,6 +69,8 @@ public:
 
 private:
 
+    // --------------------------------------------------------------------
+
     struct Offset
     {
         Offset(int xx, int yy) noexcept
@@ -79,27 +85,18 @@ private:
             y += dy;
         }
 
-        int x;
-        int y;
+        int x{};
+        int y{};
     };
 
+    // --------------------------------------------------------------------
+
     [[nodiscard]] const char* colourLabel() const noexcept { return (m_greyscale) ? " [ grey ]" : " [ colour ]"; }
-    [[nodiscard]] bool fitToScreen() const noexcept { return m_fitToScreen; }
-    [[nodiscard]] const char* fitToScreenLabel() const noexcept { return (m_fitToScreen) ? " [ FTS ]" : " [ FOS ]"; }
     [[nodiscard]] bool haveAnnotation() const noexcept { return m_annotate > FONT_OFF; }
     [[nodiscard]] bool haveBlankScreen() const noexcept { return m_isBlank; }
-    [[nodiscard]] bool haveFrames() const noexcept { return m_frameIndexMax > 0; }
-    [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
-    [[nodiscard]] bool notScaled() const noexcept { return scaleOversized() and not oversize() and not m_fitToScreen; }
-    [[nodiscard]] bool originalSize() const noexcept { return m_percent == 100; }
-    [[nodiscard]] bool scaleActualSize() const noexcept { return m_zoom == 1; }
-    [[nodiscard]] bool scaleOversized() const noexcept { return m_zoom == SCALE_OVERSIZED; }
-    [[nodiscard]] bool scaleZoomed() const noexcept { return m_zoom > 1; }
-    [[nodiscard]] const char* transformationLabel() const noexcept { return (m_smoothScale) ? " [ smooth ]" : " [ fast ]"; }
+    [[nodiscard]] bool haveImages() const noexcept { return m_files.haveImages(); }
+    [[nodiscard]] bool haveSplashScreen() const noexcept { return m_isSplash; }
     [[nodiscard]] bool viewingImage() const noexcept { return not m_isBlank and not m_isSplash; }
-    [[nodiscard]] int zoomedHeight() const { return m_image.height() * zoomValue(); }
-    [[nodiscard]] int zoomedWidth() const { return m_image.width() * zoomValue(); }
-    [[nodiscard]] int zoomValue() const noexcept { return (m_zoom == 0) ? 1 : m_zoom; }
 
     // --------------------------------------------------------------------
 
@@ -134,14 +131,11 @@ private:
     void handleGeneralKeys(int key, bool isShift);
     void handleImageViewingKeys(int key, bool isShift);
     void histogram(QPainter& painter);
-    void imageNext();
-    void imageNext(bool step);
-    void imagePrevious();
-    void imagePrevious(bool step);
+    void imageNext(bool step = false);
+    void imagePrevious(bool step = false);
     void openDirectory();
     void openFrame();
     void openImage();
-    [[nodiscard]] bool oversize() const noexcept;
     void paint(QPainter& painter);
     void pan(int x, int y);
     [[nodiscard]] QPoint placeImage(const QImage& image) const noexcept;
@@ -160,18 +154,8 @@ private:
     void toggleGreyScale();
     void toggleHistogram();
     void toggleSmoothScale();
-    [[nodiscard]] Qt::TransformationMode transformationMode() const noexcept;
     void zoomIn();
     void zoomOut();
-
-    static const int INVALID_INDEX{-1};
-
-    enum Histogram
-    {
-        HISTOGRAM_OFF = 0,
-        HISTOGRAM_RGB = 1,
-        HISTOGRAM_INTENSITY = 2
-    };
 
     enum Zoom
     {
@@ -192,25 +176,22 @@ private:
         ENLIGHTEN_MAXIMUM = 10
     };
 
-    static const int PAN_STEP{10};
+    enum PanStep
+    {
+        PAN_STEP_SMALL = 10,
+        PAN_STEP_LARGE = 100
+    };
 
     AnnotationFont m_annotate;
-    int m_current;
-    QString m_directory;
     int m_enlighten;
-    std::vector<QFileInfo> m_files;
-    bool m_fitToScreen;
-    int m_frame;
-    int m_frameIndexMax;
+    Files m_files;
+    Frame m_frame;
     bool m_greyscale;
     Histogram m_histogram;
-    QImage m_histogramImage;
     QImage m_image;
     QImage m_imageProcessed;
     bool m_isBlank;
     bool m_isSplash;
-    int m_percent;
-    bool m_smoothScale;
+    Scale m_scale;
     Offset m_offset;
-    int m_zoom;
 };
