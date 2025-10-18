@@ -59,19 +59,18 @@ diameter(const QImage& image)
 
 // ------------------------------------------------------------------------
 
-QImage
-blur(
+void
+rowBlur(
+    int jStart,
+    int jEnd,
     const QImage& input,
+    QImage& rb,
     int radius)
 {
     const auto width = input.width();
-    const auto height = input.height();
     const auto diameter = 2 * radius + 1;
 
-    // row blurred image
-    QImage rb{width, height, QImage::Format_Grayscale8};
-
-    for (auto j = 0 ; j < height ; ++j)
+    for (auto j = jStart ; j < jEnd ; ++j)
     {
         const auto* row = input.constScanLine(j);
         auto* outputRow = rb.scanLine(j);
@@ -91,10 +90,22 @@ blur(
             outputRow[i] = sum / diameter;
         }
     }
+}
 
-    QImage output{width, height, QImage::Format_Grayscale8};
+// ------------------------------------------------------------------------
 
-    for (auto i = 0 ; i < width ; ++i)
+void
+columnBlur(
+    int iStart,
+    int iEnd,
+    const QImage& rb,
+    QImage& output,
+    int radius)
+{
+    const auto height = rb.height();
+    const auto diameter = 2 * radius + 1;
+
+    for (auto i = iStart ; i < iEnd ; ++i)
     {
         int sum{0};
 
@@ -109,6 +120,64 @@ blur(
             sum -= *(rb.constScanLine(std::clamp(j - radius - 1, 0, height - 1)) + i);
 
             *(output.scanLine(j) + i) = sum / diameter;
+        }
+    }
+}
+
+// ------------------------------------------------------------------------
+
+QImage
+blur(
+    const QImage& input,
+    int radius)
+{
+    const auto width = input.width();
+    const auto height = input.height();
+
+    QImage rb{width, height, QImage::Format_Grayscale8};
+    QImage output{width, height, QImage::Format_Grayscale8};
+
+    const auto cores = QThread::idealThreadCount();
+    const auto rowsPerCore = height / cores;
+    const auto columnPerCore = width / cores;
+
+    bool threaded = ((cores > 1) and (rowsPerCore >= 100));
+
+    if ((cores == 1) or (rowsPerCore < 100))
+    {
+        rowBlur(0, height, input, rb, radius);
+        columnBlur(0, width, rb, output, radius);
+    }
+    else
+    {
+        QFutureSynchronizer<void> rowSynchronizer;
+        auto rowRunner = [=, &input, &rb](int jStart, int jEnd)
+        {
+            rowBlur(jStart, jEnd, input, rb, radius);
+        };
+
+        for (auto core = 0 ; core < cores ; ++core)
+        {
+            const auto jStart = core * rowsPerCore;
+            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+
+            rowSynchronizer.addFuture(QtConcurrent::run(rowRunner, jStart, jEnd));
+        }
+
+        rowSynchronizer.waitForFinished();
+
+        QFutureSynchronizer<void> columnSynchronizer;
+        auto columnRunner = [=, &rb, &output](int iStart, int iEnd)
+        {
+            columnBlur(iStart, iEnd, rb, output, radius);
+        };
+
+        for (auto core = 0 ; core < cores ; ++core)
+        {
+            const auto iStart = core * columnPerCore;
+            const auto iEnd = (core == cores - 1) ? width : (iStart + columnPerCore);
+
+            columnSynchronizer.addFuture(QtConcurrent::run(columnRunner, iStart, iEnd));
         }
     }
 
@@ -478,7 +547,7 @@ enlighten(
     const auto strength2 = strength * strength;
     const auto minI = 1.0 / flerp(1.0, 10.0, strength2);
     const auto maxI = 1.0 / flerp(1.0, 1.111, strength2);
-#if 1
+
     const auto cores = QThread::idealThreadCount();
     const auto rowsPerCore = height / cores;
 
@@ -502,9 +571,6 @@ enlighten(
             synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
         }
     }
-#else
-    enlightenRowRange(0, height, minI, maxI, mb, input, output);
-#endif
 
     return output;
 }
