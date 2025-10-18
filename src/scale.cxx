@@ -48,30 +48,34 @@ Scale::oversize() const noexcept
 QImage
 Scale::scale(const QImage& image)
 {
-    m_imageSize = image.size();
+    QImage result;
+
     if (notScaled() or scaleActualSize())
     {
+        result = image;
         m_percent = 100;
-        return image;
     }
-
-    if (scaleZoomed())
+    else if (scaleZoomed())
     {
+        result = image.scaled(image.width() * m_zoom,
+                              image.height() * m_zoom,
+                              Qt::KeepAspectRatio,
+                              transformationMode());
         m_percent = m_zoom * 100;
-        return image.scaled(image.width() * m_zoom,
-                            image.height() * m_zoom,
-                            Qt::KeepAspectRatio,
-                            transformationMode());
+    }
+    else
+    {
+        result = image.scaled(m_screenSize,
+                              Qt::KeepAspectRatio,
+                              transformationMode());
+
+        const double percent = (image.width() > 0)
+                                ? std::round((100.0 * result.width()) / image.width())
+                                : 0.0;
+        m_percent = static_cast<int>(percent);
     }
 
-    auto result = image.scaled(m_screenSize,
-                               Qt::KeepAspectRatio,
-                               transformationMode());
-
-    const double percent = (image.width() > 0)
-                         ? std::round((100.0 * result.width()) / image.width())
-                         : 0.0;
-    m_percent = static_cast<int>(percent);
+    m_imageSize = result.size();
 
     return std::move(result);
 }
@@ -87,6 +91,7 @@ Scale::zoomIn() noexcept
     }
 
     ++m_zoom;
+
     return true;
 }
 
@@ -99,7 +104,9 @@ Scale::zoomOut() noexcept
     {
         return false;
     }
+
     --m_zoom;
+
     return true;
 }
 

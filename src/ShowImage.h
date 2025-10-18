@@ -71,22 +71,43 @@ private:
 
     // --------------------------------------------------------------------
 
-    struct Offset
+    class Offset
     {
-        Offset(int xx, int yy) noexcept
+    public:
+
+        Offset(int x, int y) noexcept
         :
-            x(xx),
-            y(yy)
+            m_x(x),
+            m_y(y),
+            m_zoom(1),
+            m_zoomedX(x * m_zoom),
+            m_zoomedY(y * m_zoom)
         {}
 
-        void add(int dx, int dy) noexcept
+        void pan(int dx, int dy, int zoom) noexcept
         {
-            x += dx;
-            y += dy;
+            m_x += dx;
+            m_y += dy;
+            zoomed(zoom);
         }
 
-        int x{};
-        int y{};
+        [[nodiscard]] int x() const noexcept { return m_zoomedX; }
+        [[nodiscard]] int y() const noexcept { return m_zoomedY; }
+
+        void zoomed(int zoom) noexcept
+        {
+            m_zoom = zoom;
+            m_zoomedX = m_x * m_zoom;
+            m_zoomedY = m_y * m_zoom;
+        }
+
+    private:
+
+        int m_x{};
+        int m_y{};
+        int m_zoom{1};
+        int m_zoomedX{};
+        int m_zoomedY{};
     };
 
     // --------------------------------------------------------------------

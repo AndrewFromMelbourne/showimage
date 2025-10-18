@@ -567,7 +567,7 @@ ShowImage::pan(int x, int y)
     if (m_scale.oversize() and not m_scale.scaleOversized())
     {
         const auto zoom = m_scale.zoomValue();
-        m_offset.add(x * zoom, y * zoom);
+        m_offset.pan(x, y, zoom);
         repaint();
     }
 }
@@ -577,8 +577,8 @@ ShowImage::pan(int x, int y)
 QPoint
 ShowImage::placeImage(const QImage& image) const noexcept
 {
-    const auto x = (width() / 2) - (image.width() / 2) + m_offset.x;
-    const auto y = (height() / 2) - (image.height() / 2) + m_offset.y;
+    const auto x = (width() / 2) - (image.width() / 2) + m_offset.x();
+    const auto y = (height() / 2) - (image.height() / 2) + m_offset.y();
 
     return QPoint(x, y);
 }
@@ -635,6 +635,11 @@ void
 ShowImage::processImageResize()
 {
     m_imageProcessed = m_scale.scale(m_imageProcessed);
+
+    if (not m_scale.oversize())
+    {
+        center();
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -786,6 +791,7 @@ ShowImage::zoomIn()
 {
     if (m_scale.zoomIn())
     {
+        m_offset.zoomed(m_scale.zoomValue());
         processImageAndRepaint();
     }
 }
@@ -797,6 +803,7 @@ ShowImage::zoomOut()
 {
     if (m_scale.zoomOut())
     {
+        m_offset.zoomed(m_scale.zoomValue());
         processImageAndRepaint();
     }
 }
