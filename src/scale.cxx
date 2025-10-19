@@ -77,7 +77,7 @@ Scale::scale(const QImage& image)
 
     m_imageSize = result.size();
 
-    return std::move(result);
+    return result;
 }
 
 // ------------------------------------------------------------------------

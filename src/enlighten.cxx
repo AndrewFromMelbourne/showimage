@@ -31,6 +31,7 @@
 #include <QThread>
 
 #include "enlighten.h"
+#include "slice.h"
 
 // ========================================================================
 
@@ -46,15 +47,6 @@ flerp(
     double alpha)
 {
     return (value1 * (1.0 - alpha)) + (value2 * alpha);
-}
-
-// ------------------------------------------------------------------------
-
-double
-diameter(const QImage& image)
-{
-    return sqrt((image.width() * image.width()) +
-                 (image.height() * image.height()));
 }
 
 // ------------------------------------------------------------------------
@@ -137,48 +129,56 @@ blur(
     QImage rb{width, height, QImage::Format_Grayscale8};
     QImage output{width, height, QImage::Format_Grayscale8};
 
-    const auto cores = QThread::idealThreadCount();
-    const auto rowsPerCore = height / cores;
-    const auto columnPerCore = width / cores;
+    const auto rowThreads = concurrentRowSlice(input);
 
-    bool threaded = ((cores > 1) and (rowsPerCore >= 100));
-
-    if ((cores == 1) or (rowsPerCore < 100))
+    if (rowThreads)
     {
-        rowBlur(0, height, input, rb, radius);
-        columnBlur(0, width, rb, output, radius);
-    }
-    else
-    {
+        const auto rowsPerCore = height / *rowThreads;
         QFutureSynchronizer<void> rowSynchronizer;
         auto rowRunner = [=, &input, &rb](int jStart, int jEnd)
         {
             rowBlur(jStart, jEnd, input, rb, radius);
         };
 
-        for (auto core = 0 ; core < cores ; ++core)
+        for (auto thread = 0 ; thread < *rowThreads ; ++thread)
         {
-            const auto jStart = core * rowsPerCore;
-            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+            const auto jStart = thread * rowsPerCore;
+            const auto jEnd = (thread == *rowThreads - 1) ? height : (jStart + rowsPerCore);
 
             rowSynchronizer.addFuture(QtConcurrent::run(rowRunner, jStart, jEnd));
         }
 
         rowSynchronizer.waitForFinished();
+    }
+    else
+    {
+        rowBlur(0, height, input, rb, radius);
+    }
 
+    const auto columnThreads = concurrentColumnSlice(input);
+
+    if (columnThreads)
+    {
+        const auto columnPerCore = width / *columnThreads;
         QFutureSynchronizer<void> columnSynchronizer;
         auto columnRunner = [=, &rb, &output](int iStart, int iEnd)
         {
             columnBlur(iStart, iEnd, rb, output, radius);
         };
 
-        for (auto core = 0 ; core < cores ; ++core)
+        for (auto thread = 0 ; thread < *columnThreads ; ++thread)
         {
-            const auto iStart = core * columnPerCore;
-            const auto iEnd = (core == cores - 1) ? width : (iStart + columnPerCore);
+            const auto iStart = thread * columnPerCore;
+            const auto iEnd = (thread == *columnThreads - 1) ? width : (iStart + columnPerCore);
 
             columnSynchronizer.addFuture(QtConcurrent::run(columnRunner, iStart, iEnd));
         }
+
+        columnSynchronizer.waitForFinished();
+    }
+    else
+    {
+        columnBlur(0, width, rb, output, radius);
     }
 
     return output;
@@ -249,7 +249,6 @@ maximumRowGrey8(
     QImage& output)
 {
     const auto width = input.width();
-    auto* outputRow = output.scanLine(row);
     const auto* pixel = input.constScanLine(row);
     std::copy(pixel, pixel + width, output.scanLine(row));
 }
@@ -306,28 +305,28 @@ maximum(const QImage& input)
     const auto width = input.width();
 
     QImage output{width, height, QImage::Format_Grayscale8};
-    const auto cores = QThread::idealThreadCount();
-    const auto rowsPerCore = height / cores;
+    const auto threads = concurrentRowSlice(input);
 
-    if ((cores == 1) or (rowsPerCore < 100))
+    if (threads)
     {
-        maximumRowRange(0, height, input, output);
-    }
-    else
-    {
+        const auto rowsPerCore = height / *threads;
         QFutureSynchronizer<void> synchronizer;
         auto runner = [=, &input, &output](int jStart, int jEnd)
         {
             maximumRowRange(jStart, jEnd, input, output);
         };
 
-        for (auto core = 0 ; core < cores ; ++core)
+        for (auto thread = 0 ; thread < *threads ; ++thread)
         {
-            const auto jStart = core * rowsPerCore;
-            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+            const auto jStart = thread * rowsPerCore;
+            const auto jEnd = (thread == *threads - 1) ? height : (jStart + rowsPerCore);
 
             synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
         }
+    }
+    else
+    {
+        maximumRowRange(0, height, input, output);
     }
 
     return output;

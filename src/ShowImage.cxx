@@ -308,7 +308,7 @@ ShowImage::framePrevious()
 // ------------------------------------------------------------------------
 
 void
-ShowImage::handleGeneralKeys(int key, bool isShift)
+ShowImage::handleGeneralKeys(int key, [[maybe_unused]] bool isShift)
 {
     switch (key)
     {

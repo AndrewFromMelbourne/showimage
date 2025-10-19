@@ -25,39 +25,61 @@
 //
 //-------------------------------------------------------------------------
 
-#pragma once
+#include <QThread>
 
-#include <QFileInfo>
-#include <QString>
+#include "slice.h"
 
-#include <limits>
-#include <vector>
+// ========================================================================
+namespace
+{
 
 // ------------------------------------------------------------------------
 
-class Files
+static constexpr int MinSliceSize{100};
+
+// ------------------------------------------------------------------------
+
+std::optional<int>
+concurrentSlice(
+    int dimensionSize)
 {
-public:
 
-    [[nodiscard]] QString absolutePath() const { return m_files[m_current].absoluteFilePath(); }
-    [[nodiscard]] std::size_t count() const noexcept { return m_files.size(); }
-    [[nodiscard]] QString directory() const noexcept { return m_directory; }
-    [[nodiscard]] int index() const noexcept { return m_current; }
-    [[nodiscard]] QString path() const { return m_files[m_current].filePath(); }
-    [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
-    void setDirectory(const QString& directory) { m_directory = directory; }
+    const auto cores = QThread::idealThreadCount();
 
-    void next(bool step = false) noexcept;
-    void openDirectory(const QString& directory);
-    void previous(bool step = false) noexcept;
-    [[nodiscard]] bool readDirectory();
+    if ((cores == 1) or (dimensionSize < 2 * MinSliceSize))
+    {
+        return {};
+    }
 
-private:
+    for (auto threads = 2 ; threads < cores - 1 ; ++threads)
+    {
+        if (dimensionSize / (threads + 1) < MinSliceSize)
+        {
+            return threads;
+        }
+    }
 
-    static const std::size_t INVALID_INDEX{std::numeric_limits<std::size_t>::max()};
+    return cores;
+}
 
-    std::size_t m_current{INVALID_INDEX};
-    QString m_directory{};
-    std::vector<QFileInfo> m_files{};
-};
+// ------------------------------------------------------------------------
 
+}
+
+// ========================================================================
+
+std::optional<int>
+concurrentColumnSlice(
+    const QImage& image)
+{
+    return concurrentSlice(image.width());
+}
+
+//-------------------------------------------------------------------------
+
+std::optional<int>
+concurrentRowSlice(
+    const QImage& image)
+{
+    return concurrentSlice(image.height());
+}

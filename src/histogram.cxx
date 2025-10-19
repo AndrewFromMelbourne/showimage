@@ -31,6 +31,7 @@
 #include <QThread>
 
 #include "histogram.h"
+#include "slice.h"
 
 #include <algorithm>
 #include <array>
@@ -281,31 +282,25 @@ QImage
 histogramRGB(
     const QImage& input)
 {
-    const auto width = input.width();
     const auto height = input.height();
     RGBCountArray counts{};
 
     QImage output{ColourValues, HistogramHeight, QImage::Format_ARGB32};
+    const auto threads = concurrentRowSlice(input);
 
-    const auto cores = QThread::idealThreadCount();
-    const auto rowsPerCore = height / cores;
-
-    if ((cores == 1) or (rowsPerCore < 100))
+    if (threads)
     {
-        add(counts, histogramColourCount(0, height, input));
-    }
-    else
-    {
+        const auto rowsPerCore = height / *threads;
         QFutureSynchronizer<RGBCountArray> synchronizer;
         auto runner = [=, &input](int jStart, int jEnd) -> auto
         {
             return histogramColourCount(jStart, jEnd, input);
         };
 
-        for (auto core = 0 ; core < cores ; ++core)
+        for (auto thread = 0 ; thread < *threads ; ++thread)
         {
-            const auto jStart = core * rowsPerCore;
-            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+            const auto jStart = thread * rowsPerCore;
+            const auto jEnd = (thread == *threads - 1) ? height : (jStart + rowsPerCore);
 
             synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
         }
@@ -316,6 +311,10 @@ histogramRGB(
         {
             add(counts, future.result());
         }
+    }
+    else
+    {
+        add(counts, histogramColourCount(0, height, input));
     }
 
     int max{};
@@ -492,27 +491,22 @@ histogramIntensity(
     IntensityCountArray counts{};
 
     QImage output{ColourValues, HistogramHeight, QImage::Format_ARGB32};
-    auto rowFunction = histogramGreyRowFunction(input);
 
-    const auto cores = QThread::idealThreadCount();
-    const auto rowsPerCore = height / cores;
+    const auto threads = concurrentRowSlice(input);
 
-    if ((cores == 1) or (rowsPerCore < 100))
+    if (threads)
     {
-        add(counts, histogramGreyCount(0, height, input));
-    }
-    else
-    {
+        const auto rowsPerCore = height / *threads;
         QFutureSynchronizer<IntensityCountArray> synchronizer;
         auto runner = [=, &input](int jStart, int jEnd) -> auto
         {
             return histogramGreyCount(jStart, jEnd, input);
         };
 
-        for (auto core = 0 ; core < cores ; ++core)
+        for (auto thread = 0 ; thread < *threads ; ++thread)
         {
-            const auto jStart = core * rowsPerCore;
-            const auto jEnd = (core == cores - 1) ? height : (jStart + rowsPerCore);
+            const auto jStart = thread * rowsPerCore;
+            const auto jEnd = (thread == *threads - 1) ? height : (jStart + rowsPerCore);
 
             synchronizer.addFuture(QtConcurrent::run(runner, jStart, jEnd));
         }
@@ -524,8 +518,12 @@ histogramIntensity(
             add(counts, future.result());
         }
     }
+    else
+    {
+        add(counts, histogramGreyCount(0, height, input));
+    }
 
-    auto max = std::ranges::max(counts);
+    const auto max = std::ranges::max(counts);
 
     for (auto i = 0 ; i < ColourValues ; ++i)
     {

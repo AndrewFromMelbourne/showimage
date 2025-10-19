@@ -27,37 +27,12 @@
 
 #pragma once
 
-#include <QFileInfo>
-#include <QString>
+#include <QImage>
 
-#include <limits>
-#include <vector>
+#include <optional>
 
 // ------------------------------------------------------------------------
 
-class Files
-{
-public:
-
-    [[nodiscard]] QString absolutePath() const { return m_files[m_current].absoluteFilePath(); }
-    [[nodiscard]] std::size_t count() const noexcept { return m_files.size(); }
-    [[nodiscard]] QString directory() const noexcept { return m_directory; }
-    [[nodiscard]] int index() const noexcept { return m_current; }
-    [[nodiscard]] QString path() const { return m_files[m_current].filePath(); }
-    [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
-    void setDirectory(const QString& directory) { m_directory = directory; }
-
-    void next(bool step = false) noexcept;
-    void openDirectory(const QString& directory);
-    void previous(bool step = false) noexcept;
-    [[nodiscard]] bool readDirectory();
-
-private:
-
-    static const std::size_t INVALID_INDEX{std::numeric_limits<std::size_t>::max()};
-
-    std::size_t m_current{INVALID_INDEX};
-    QString m_directory{};
-    std::vector<QFileInfo> m_files{};
-};
+[[nodiscard]]std::optional<int> concurrentColumnSlice(const QImage& image);
+[[nodiscard]]std::optional<int> concurrentRowSlice(const QImage& image);
 

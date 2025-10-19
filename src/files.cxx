@@ -65,10 +65,13 @@ Files::previous(bool step) noexcept
 
     if (step)
     {
-        m_current -= 10;
-        if (m_current < 0)
+        if (m_current < 10)
         {
             m_current = m_files.size() - 1;
+        }
+        else
+        {
+            m_current -= 10;
         }
     }
     else
