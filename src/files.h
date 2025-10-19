@@ -42,7 +42,7 @@ public:
     [[nodiscard]] QString absolutePath() const { return m_files[m_current].absoluteFilePath(); }
     [[nodiscard]] std::size_t count() const noexcept { return m_files.size(); }
     [[nodiscard]] QString directory() const noexcept { return m_directory; }
-    [[nodiscard]] int index() const noexcept { return m_current; }
+    [[nodiscard]] std::size_t index() const noexcept { return m_current; }
     [[nodiscard]] QString path() const { return m_files[m_current].filePath(); }
     [[nodiscard]] bool haveImages() const noexcept { return m_current != INVALID_INDEX; }
     void setDirectory(const QString& directory) { m_directory = directory; }
