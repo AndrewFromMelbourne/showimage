@@ -30,6 +30,22 @@
 //-------------------------------------------------------------------------
 
 bool
+Scale::fitsWithinScreen() const noexcept
+{
+    if ((m_processedSize.width() <= m_screenSize.width()) and
+        (m_processedSize.height() <= m_screenSize.height()))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+//-------------------------------------------------------------------------
+
+bool
 Scale::oversize() const noexcept
 {
     if ((zoomedWidth() > m_screenSize.width()) or
@@ -49,6 +65,8 @@ QImage
 Scale::scale(const QImage& image)
 {
     QImage result;
+
+    m_imageSize = image.size();
 
     if (notScaled() or scaleActualSize())
     {
@@ -75,7 +93,7 @@ Scale::scale(const QImage& image)
         m_percent = static_cast<int>(percent);
     }
 
-    m_imageSize = result.size();
+    m_processedSize = result.size();
 
     return result;
 }

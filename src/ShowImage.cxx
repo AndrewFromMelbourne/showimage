@@ -545,10 +545,11 @@ ShowImage::paint(QPainter& painter)
         return;
     }
 
-    if (not m_scale.oversize())
+    if (m_scale.fitsWithinScreen())
     {
         center();
     }
+
 
     if ((m_image.width() > 0) and (m_image.height() > 0))
     {
@@ -564,7 +565,7 @@ ShowImage::paint(QPainter& painter)
 void
 ShowImage::pan(int x, int y)
 {
-    if (m_scale.oversize() and not m_scale.scaleOversized())
+    if (not m_scale.fitsWithinScreen())
     {
         const auto zoom = m_scale.zoomValue();
         m_offset.pan(x, y, zoom);
@@ -635,11 +636,6 @@ void
 ShowImage::processImageResize()
 {
     m_imageProcessed = m_scale.scale(m_imageProcessed);
-
-    if (not m_scale.oversize())
-    {
-        center();
-    }
 }
 
 // ------------------------------------------------------------------------
@@ -735,6 +731,7 @@ void
 ShowImage::toggleFitToScreen()
 {
     m_scale.toggleFitToScreen();
+    processImageAndRepaint();
 }
 
 // ------------------------------------------------------------------------

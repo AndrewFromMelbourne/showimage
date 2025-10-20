@@ -50,6 +50,7 @@ public:
     [[nodiscard]] int zoomedWidth() const { return m_imageSize.width() * zoomValue(); }
     [[nodiscard]] int zoomValue() const noexcept { return (m_zoom == 0) ? 1 : m_zoom; }
 
+    [[nodiscard]] bool fitsWithinScreen() const noexcept;
     [[nodiscard]] bool oversize() const noexcept;
     [[nodiscard]] QImage scale(const QImage& image);
     void screenResize(const QSize& size) noexcept { m_screenSize = size; }
@@ -69,6 +70,7 @@ private:
     bool m_fitToScreen{true};
     QSize m_imageSize{};
     int m_percent{0};
+    QSize m_processedSize{};
     QSize m_screenSize{};
     bool m_smoothScale{true};
     int m_zoom{0};
