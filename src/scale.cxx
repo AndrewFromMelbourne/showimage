@@ -135,4 +135,3 @@ Scale::transformationMode() const noexcept
 {
     return (m_smoothScale) ? Qt::SmoothTransformation : Qt::FastTransformation;
 }
-

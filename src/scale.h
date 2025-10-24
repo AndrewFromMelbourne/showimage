@@ -75,4 +75,3 @@ private:
     bool m_smoothScale{true};
     int m_zoom{0};
 };
-

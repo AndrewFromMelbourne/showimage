@@ -107,24 +107,20 @@ Histogram::toggle() noexcept
 
 namespace
 {
-    struct RGBCount
-    {
-        int r{0};
-        int g{0};
-        int b{0};
-    };
-
-    static constexpr int HistogramAlpha{191};
-    static constexpr int HistogramHeight{128};
-    static constexpr int ColourValues{256};
-    static constexpr int BackgroundBrightness{63};
-    static constexpr int HistogramBrightness{255};
 
 // -------------------------------------------------------------------------
-
+struct RGBCount
+{
+    int r{0};
+    int g{0};
+    int b{0};
 };
 
-// ========================================================================
+static constexpr int HistogramAlpha{191};
+static constexpr int HistogramHeight{128};
+static constexpr int ColourValues{256};
+static constexpr int BackgroundBrightness{63};
+static constexpr int HistogramBrightness{255};
 
 using RGBCountArray = std::array<RGBCount, ColourValues>;
 
@@ -277,6 +273,9 @@ histogramColourCount(
 
 // -------------------------------------------------------------------------
 
+};
+
+// ========================================================================
 
 QImage
 histogramRGB(
@@ -346,6 +345,10 @@ histogramRGB(
 }
 
 // ========================================================================
+namespace
+{
+
+// -------------------------------------------------------------------------
 
 using IntensityCountArray = std::array<int, ColourValues>;
 
@@ -482,6 +485,10 @@ histogramGreyCount(
 }
 
 // -------------------------------------------------------------------------
+
+};
+
+// ========================================================================
 
 QImage
 histogramIntensity(

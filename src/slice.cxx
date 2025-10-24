@@ -43,7 +43,6 @@ std::optional<int>
 concurrentSlice(
     int dimensionSize)
 {
-
     const auto cores = QThread::idealThreadCount();
 
     if ((cores == 1) or (dimensionSize < 2 * MinSliceSize))

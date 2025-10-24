@@ -120,4 +120,3 @@ Files::readDirectory()
     m_current = INVALID_INDEX;
     return false;
 }
-
