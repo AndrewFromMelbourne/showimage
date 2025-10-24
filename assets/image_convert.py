@@ -38,12 +38,14 @@ def main():
             if ((index % codeWidth) == 0):
                 print("    ", end='')
 
-            print('0x{:02x}, '.format(pixel), end='')
+            print('0x{:02x},'.format(pixel), end='')
 
             index += 1
 
             if ((index % codeWidth) == 0):
                 print("")
+            else:
+                print(" ", end='')
 
     print("};")
 
