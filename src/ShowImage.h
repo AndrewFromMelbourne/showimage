@@ -50,7 +50,7 @@ public:
     static const int DEFAULT_WIDTH{640};
     static const int DEFAULT_HEIGHT{480};
 
-    ShowImage(QWidget* parent = nullptr);
+    explicit ShowImage(QWidget* parent = nullptr);
     virtual ~ShowImage() = default;
 
     ShowImage(const ShowImage&) = delete;

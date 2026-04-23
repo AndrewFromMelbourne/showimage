@@ -607,8 +607,8 @@ ShowImage::processImageEnlighten()
 {
     if (m_enlighten > 0)
     {
-        const auto enlighten = m_enlighten / static_cast<double>(ENLIGHTEN_MAXIMUM);
-        m_imageProcessed = ::enlighten(m_imageProcessed, enlighten);
+        const auto enlightenValue = m_enlighten / static_cast<double>(ENLIGHTEN_MAXIMUM);
+        m_imageProcessed = ::enlighten(m_imageProcessed, enlightenValue);
     }
 }
 

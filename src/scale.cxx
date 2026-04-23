@@ -87,10 +87,10 @@ Scale::scale(const QImage& image)
                               Qt::KeepAspectRatio,
                               transformationMode());
 
-        const double percent = (image.width() > 0)
-                                ? std::round((100.0 * result.width()) / image.width())
-                                : 0.0;
-        m_percent = static_cast<int>(percent);
+        const double fraction = (image.width() > 0)
+                              ? std::round((100.0 * result.width()) / image.width())
+                              : 0.0;
+        m_percent = static_cast<int>(fraction);
     }
 
     m_processedSize = result.size();
