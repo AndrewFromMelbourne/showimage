@@ -550,7 +550,6 @@ ShowImage::paint(QPainter& painter)
         center();
     }
 
-
     if ((m_image.width() > 0) and (m_image.height() > 0))
     {
         painter.drawImage(placeImage(m_imageProcessed), m_imageProcessed);
