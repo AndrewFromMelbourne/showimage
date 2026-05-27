@@ -223,7 +223,13 @@ QString
 ShowImage::annotation() const
 {
     const auto name = m_files.absolutePath();
-    const auto nameLength = name.length() - m_files.directory().length() - 1;
+    auto nameLength = name.length() - m_files.directory().length();
+
+    if (m_files.directory().back() != QDir::separator())
+    {
+        --nameLength;
+    }
+
     auto text = QString("%1").arg(name.right(nameLength));
 
     text += QString(" ( %1 x %2 )").arg(QString::number(m_image.width()),
