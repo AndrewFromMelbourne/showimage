@@ -223,9 +223,9 @@ QString
 ShowImage::annotation() const
 {
     const auto name = m_files.absolutePath();
-    auto nameLength = name.length() - m_files.directory().length();
+    auto nameLength = name.length() - m_files.getDirectory().length();
 
-    if (m_files.directory().back() != QDir::separator())
+    if (m_files.getDirectory().back() != QDir::separator())
     {
         --nameLength;
     }
@@ -456,7 +456,7 @@ ShowImage::handleImageViewingKeys(int key, bool isShift)
 void
 ShowImage::histogram(QPainter& painter)
 {
-    const auto& histogramImage = m_histogram.image();
+    const auto& histogramImage = m_histogram.getImage();
     if (histogramImage.isNull())
     {
         return;

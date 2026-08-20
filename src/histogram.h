@@ -42,7 +42,7 @@ public:
         HISTOGRAM_INTENSITY = 2
     };
 
-    [[nodiscard]] const QImage& image() const noexcept { return m_image; }
+    [[nodiscard]] const QImage& getImage() const noexcept { return m_image; }
     void invalidate() noexcept { m_isValid = false; }
     [[nodiscard]] bool isValid() const noexcept { return m_isValid; }
 
