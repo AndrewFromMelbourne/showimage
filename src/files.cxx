@@ -25,7 +25,11 @@
 //
 //-------------------------------------------------------------------------
 
+#include <algorithm>
+
+#include <QDebug>
 #include <QDirIterator>
+#include <QImageReader>
 
 #include "files.h"
 
@@ -89,8 +93,21 @@ Files::readDirectory()
 
     if (m_directory.length() > 0)
     {
+        QStringList filters{};
+
+        const auto supportedFormats = QImageReader::supportedImageFormats();
+
+        std::transform(
+            supportedFormats.begin(),
+            supportedFormats.end(),
+            std::back_inserter(filters),
+            [](const auto& format)
+            {
+                return QString("*.%1").arg(QString::fromUtf8(format));
+            });
+
         QDirIterator iter(m_directory,
-                          {"*.bmp", "*.gif", "*.jpg", "*.jpeg", "*.png"},
+                          filters,
                           QDir::Files,
                           QDirIterator::Subdirectories);
         while (iter.hasNext())
