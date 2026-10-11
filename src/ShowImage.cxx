@@ -249,10 +249,10 @@ ShowImage::annotation() const
     text += m_scale.fitToScreenLabel();
     text += QString(" [ enlighten %1% ]").arg(QString::number(m_enlighten * 10));
 
-    if (m_frame.max() > 0)
+    if (m_frame.getMax() > 0)
     {
         text += QString(" [ frame %1/%2 ]").arg(QString::number(m_frame.index() + 1),
-                                                QString::number(m_frame.max() + 1));
+                                                QString::number(m_frame.getMax() + 1));
     }
 
     return text;
@@ -525,7 +525,7 @@ ShowImage::openImage()
 {
     QImageReader reader{m_files.path()};
 
-    m_frame.set(reader.imageCount() - 1);
+    m_frame.setMax(reader.imageCount() - 1);
     m_image = reader.read();
 
     center();

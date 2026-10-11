@@ -55,14 +55,14 @@ public:
         return true;
     }
 
-    void set(int max) noexcept
+    void setMax(int max) noexcept
     {
         m_index = 0;
         m_max = max;
     }
 
     int index() const noexcept { return m_index; }
-    int max() const noexcept { return m_max; }
+    int getMax() const noexcept { return m_max; }
 
 private:
 
