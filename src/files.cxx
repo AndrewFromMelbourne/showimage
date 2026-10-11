@@ -89,6 +89,13 @@ Files::previous(bool step) noexcept
 bool
 Files::readDirectory()
 {
+    QString currentPath{};
+
+    if (haveImages())
+    {
+        currentPath = m_files[m_current].filePath();
+    }
+
     m_files.clear();
 
     if (m_directory.length() > 0)
@@ -117,6 +124,18 @@ Files::readDirectory()
             if (fileInfo.isFile())
             {
                 m_files.push_back(fileInfo);
+            }
+        }
+    }
+
+    if (currentPath.length() > 0)
+    {
+        for (auto i = 0U ; i < m_files.size() ; ++i)
+        {
+            if (m_files[i].filePath() == currentPath)
+            {
+                m_current = i;
+                return true;
             }
         }
     }
