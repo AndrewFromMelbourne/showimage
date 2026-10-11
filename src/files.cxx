@@ -126,6 +126,13 @@ Files::readDirectory()
                 m_files.push_back(fileInfo);
             }
         }
+
+        std::ranges::sort(
+            m_files,
+            [](const auto& lhs, const auto& rhs)
+            {
+                return lhs.filePath() < rhs.filePath();
+            });
     }
 
     if (currentPath.length() > 0)
