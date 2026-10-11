@@ -130,13 +130,17 @@ Files::readDirectory()
 
     if (currentPath.length() > 0)
     {
-        for (auto i = 0U ; i < m_files.size() ; ++i)
-        {
-            if (m_files[i].filePath() == currentPath)
+        auto found = std::ranges::find_if(
+            m_files,
+            [&currentPath](const auto& fileInfo)
             {
-                m_current = i;
-                return true;
-            }
+                return fileInfo.filePath() == currentPath;
+            });
+
+        if (found != m_files.end())
+        {
+            m_current = std::distance(m_files.begin(), found);
+            return true;
         }
     }
 
